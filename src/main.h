@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <netinet/in.h>
 
 #ifndef TPE_PROTOS_MAIN_H
 #define TPE_PROTOS_MAIN_H
