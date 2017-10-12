@@ -1,20 +1,16 @@
 #include <stdio.h>
 #include <string.h>   //strlen
 #include <stdlib.h>
-#include <errno.h>
 #include <unistd.h>   //close
 #include <arpa/inet.h>    //close
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
+#include <errno.h>
+#include <ctype.h>
 
 #define TRUE   1
 #define FALSE  0
-#define PORT 8888
 #define MAX_CLIENTS 30
 
-int create_server_socket() {
+int create_server_socket(char * origin_server, int origin_port) {
 
     int sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -28,7 +24,7 @@ int create_server_socket() {
     memset(&servAddr, 0, sizeof(servAddr)); // Zero out structure
     servAddr.sin_family = AF_INET;          // IPv4 address family
     // Convert address
-    int rtnVal = inet_pton(AF_INET, "127.0.0.1", &servAddr.sin_addr.s_addr);
+    int rtnVal = inet_pton(AF_INET, origin_server, &servAddr.sin_addr.s_addr);
     if (rtnVal == 0) {
         perror("inet_pton() failed - invalid address string");
         exit(-1);
@@ -36,7 +32,7 @@ int create_server_socket() {
         perror("inet_pton() failed");
         exit(-1);
     }
-    servAddr.sin_port = htons(110);    // Server port
+    servAddr.sin_port = htons(origin_port);    // Server port
 
     // Establish the connection to the echo server
     if (connect(sock, (struct sockaddr *) &servAddr, sizeof(servAddr)) < 0) {
@@ -47,8 +43,102 @@ int create_server_socket() {
     return sock;
 }
 
-int main(int argc , char *argv[])
-{
+/*TODO: help*/
+void print_help(){
+    printf("HELP");
+}
+
+void print_version() {
+    printf("POP3 Proxy 1.0");
+}
+
+int main(int argc, char ** argv){
+
+    int port = 1110;
+    char *error_file = "/dev/null";
+    char *listen_address = INADDR_ANY;
+    char *management_address = "127.0.0.1";
+    int management_port = 9090;
+    char *replacement_msg = "Parte reemplazada.";
+    char *filtered_media_types = "text/plain,image/*";
+    char *origin_server;
+    int origin_port = 110;
+    char *filter_command;
+    int index = 0;
+    int c;
+
+    opterr = 0;
+
+    while ((c = getopt (argc, argv, "e:hl:L:m:M:o:p:P:t:v")) != -1) /* e: option e requires argument e:: optional argument */
+        switch (c)
+        {
+            /* Error file */
+            case 'e':
+                error_file = optarg;
+                break;
+                /* Print help and quit */
+            case 'h':
+                print_help();
+                exit(0);
+                break;
+                /* Listen address */
+            case 'l':
+                listen_address = optarg;
+                break;
+                /* Management listen address */
+            case 'L':
+                management_address = optarg;
+                break;
+                /* Replacement message */
+            case 'm':
+                replacement_msg = optarg;
+                break;
+            case 'M':
+                filtered_media_types = optarg;
+                break;
+                /* Management SCTP port */
+            case 'o':
+                management_port = atoi(optarg);
+                break;
+                /* proxy port */
+            case 'p':
+                port = atoi(optarg);
+                break;
+                /* pop3 server port*/
+            case 'P':
+                origin_port = atoi(optarg);
+                break;
+            case 't': {
+                filter_command = optarg;
+            }
+                break;
+            case 'v':
+                print_version();
+                exit(0);
+                break;
+            case '?':
+                if (optopt == 'e' || optopt == 'l' || optopt == 'L') /*TODO: add every option */
+                    fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+                else if (isprint (optopt))
+                    fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+                else
+                    fprintf (stderr,
+                             "Unknown option character `\\x%x'.\n",
+                             optopt);
+                return 1;
+            default:
+                abort ();
+        }
+
+    index = optind;
+
+    if (argc-index == 1){
+        origin_server = argv[index];
+    }else {
+        fprintf(stderr, "Usage: %s [ POSIX style options ] <origin-server>\n", argv[0]);
+        return 1;
+    }
+
     int opt = TRUE;
     int master_socket , addrlen , new_socket , client_socket[MAX_CLIENTS] = {0} , max_clients = MAX_CLIENTS , activity, i, sd;
     ssize_t valread;
@@ -82,7 +172,7 @@ int main(int argc , char *argv[])
     //type of socket created
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons( PORT );
+    address.sin_port = htons( port );
 
     //bind the socket to localhost port 8888
     if (bind(master_socket, (struct sockaddr *)&address, sizeof(address))<0)
@@ -90,7 +180,7 @@ int main(int argc , char *argv[])
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
-    printf("Listener on port %d \n", PORT);
+    printf("Listener on port %d \n", port);
 
     //try to specify maximum of 3 pending connections for the master socket
     if (listen(master_socket, 3) < 0)
@@ -178,7 +268,7 @@ int main(int argc , char *argv[])
                     client_socket[i] = new_socket;
                     printf("Adding to list of client sockets as %d\n" , i);
                     //Create pop3 socket
-                    if ( (server_socket[i] = create_server_socket()) == 0){
+                    if ((server_socket[i] = create_server_socket(origin_server, origin_port)) == 0){
                         perror("socket failed");
                         exit(EXIT_FAILURE);
                     }
@@ -246,6 +336,4 @@ int main(int argc , char *argv[])
             }
         }
     }
-
-    return 0;
 }
