@@ -5,9 +5,16 @@
 #define TPE_PROTOS_MAIN_H
 
 typedef struct {
-    in_addr_t pop3_ip;         /* pop3 ip */
-    in_port_t pop3_port;
-    in_port_t port;       /* proxy listen port */
+    int port;
+    char * error_file;
+    char * listen_address;
+    char * management_address;
+    int management_port;
+    char * replacement_msg;
+    char * filtered_media_types;
+    char * origin_server;
+    int origin_port;
+    char *filter_command;
 
 } options;
 

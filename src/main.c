@@ -5,11 +5,15 @@
 #include <arpa/inet.h>    //close
 #include <errno.h>
 #include <ctype.h>
+#include <stdbool.h>
+#include "main.h"
 
-#define TRUE   1
-#define FALSE  0
-#define MAX_CLIENTS 30
+#define PENDING_CONNECTIONS 3
 #define BUFFER_SIZE 1025
+
+/**
+ * Source: http://www.binarytides.com/multiple-socket-connections-fdset-select-linux/
+ */
 
 /**
  * creates a tcp socket connection to the pop3 origin server
@@ -65,9 +69,9 @@ void print_version() {
     printf("POP3 Proxy 1.0");
 }
 
-int add_to_set(fd_set *readfds, int max_sd, const int sockets[]) {
+int add_to_set(fd_set *readfds, int max_sd, const int sockets[], int max_clients) {
 
-    for (int i = 0 ; i < MAX_CLIENTS ; i++) {
+    for (int i = 0 ; i < max_clients ; i++) {
         // socket descriptor
         int sd = sockets[i];
 
@@ -85,19 +89,21 @@ int add_to_set(fd_set *readfds, int max_sd, const int sockets[]) {
     return max_sd;
 }
 
-int main (int argc, char ** argv) {
+options parse_options(int argc, char **argv) {
 
-    int port = 1110;
-    char *error_file            = "/dev/null";
-    char *listen_address        = INADDR_ANY;
-    char *management_address    = "127.0.0.1";
-    int management_port         = 9090;
-    char *replacement_msg       = "Parte reemplazada.";
-    char *filtered_media_types  = "text/plain,image/*";
-    char *origin_server;
-    int origin_port             = 110;
-    char *filter_command;
-    int index                   = 0;
+    /* Initialize default values */
+    options opt = {
+            .port                   = 1110,
+            .error_file             = "/dev/null",
+            .management_address     = "127.0.0.1",
+            .management_port        = 9090,
+            .listen_address         = INADDR_ANY,
+            .replacement_msg        = "Parte reemplazada.",
+            .filtered_media_types   = "text/plain,image/*",
+            .origin_port            = 110
+    };
+
+    int index = 0;
     int c;
 
     opterr = 0;
@@ -108,7 +114,7 @@ int main (int argc, char ** argv) {
         {
             /* Error file */
             case 'e':
-                error_file = optarg;
+                opt.error_file = optarg;
                 break;
                 /* Print help and quit */
             case 'h':
@@ -117,33 +123,33 @@ int main (int argc, char ** argv) {
                 break;
                 /* Listen address */
             case 'l':
-                listen_address = optarg;
+                opt.listen_address = optarg;
                 break;
                 /* Management listen address */
             case 'L':
-                management_address = optarg;
+                opt.management_address = optarg;
                 break;
                 /* Replacement message */
             case 'm':
-                replacement_msg = optarg;
+                opt.replacement_msg = optarg;
                 break;
             case 'M':
-                filtered_media_types = optarg;
+                opt.filtered_media_types = optarg;
                 break;
                 /* Management SCTP port */
             case 'o':
-                management_port = atoi(optarg);
+                opt.management_port = atoi(optarg);
                 break;
                 /* proxy port */
             case 'p':
-                port = atoi(optarg);
+                opt.port = atoi(optarg);
                 break;
                 /* pop3 server port*/
             case 'P':
-                origin_port = atoi(optarg);
+                opt.origin_port = atoi(optarg);
                 break;
             case 't': {
-                filter_command = optarg;
+                opt.filter_command = optarg;
             }
                 break;
             case 'v':
@@ -161,7 +167,7 @@ int main (int argc, char ** argv) {
                     fprintf (stderr,
                              "Unknown option character `\\x%x'.\n",
                              optopt);
-                return 1;
+                exit(1);
             default:
                 abort ();
         }
@@ -170,19 +176,43 @@ int main (int argc, char ** argv) {
     index = optind;
 
     if (argc-index == 1){
-        origin_server = argv[index];
+        opt.origin_server = argv[index];
     }else {
         fprintf(stderr, "Usage: %s [ POSIX style options ] <origin-server>\n",
                 argv[0]);
-        return 1;
+        exit(1);
     }
 
-    int opt         = TRUE;
-    int max_clients = MAX_CLIENTS;
+    return opt;
+}
+
+void end_connection(struct sockaddr_in address, int client, int sd,
+                    int *client_socket,
+                    int *server_socket) {
+    int addrlen = sizeof(address);
+    //Somebody disconnected , get his details and print
+    getpeername(sd, (struct sockaddr*)&address,
+                (socklen_t*)&addrlen);
+    printf("Client disconnected , ip %s , port %d \n",
+           inet_ntoa(address.sin_addr),
+           ntohs(address.sin_port));
+
+    //Close the socket and mark as 0 in list for reuse
+    close(sd);
+    close(server_socket[client]);
+    client_socket[client] = 0;
+    server_socket[client] = 0;
+}
+
+int main (int argc, char ** argv) {
+
+    options opt = parse_options(argc,argv);
+
+    int sock_opt         = true;
+    int max_clients = FD_SETSIZE;
     // initialise all client_socket[] and server_socket[] to 0 so not checked
-    int client_socket[MAX_CLIENTS] = {0};
-    int server_socket[MAX_CLIENTS] = {0};
-    int max_sd;
+    int client_socket[FD_SETSIZE] = {0};
+    int server_socket[FD_SETSIZE] = {0};
     struct sockaddr_in address;
 
     char buffer[BUFFER_SIZE];  //data buffer of 1K
@@ -204,7 +234,7 @@ int main (int argc, char ** argv) {
     // set master socket to allow multiple connections
     // this is just a good habit, it will work without this
     if (setsockopt(master_socket, SOL_SOCKET, SO_REUSEADDR,
-                   (char *)&opt, sizeof(opt)) < 0) {
+                   (char *)&sock_opt, sizeof(sock_opt)) < 0) {
         perror("setsockopt");
         exit(EXIT_FAILURE);
     }
@@ -212,17 +242,17 @@ int main (int argc, char ** argv) {
     //type of socket created
     address.sin_family      = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port        = htons( port );
+    address.sin_port        = htons(opt.port);
 
-    //bind the socket to localhost port 8888
+    //bind the socket to localhost port
     if (bind(master_socket, (struct sockaddr *)&address, sizeof(address))<0) {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
-    printf("Listening on port %d \n", port);
+    printf("Listening on port %d \n", opt.port);
 
     //try to specify maximum of 3 pending connections for the master socket
-    if (listen(master_socket, 3) < 0) {
+    if (listen(master_socket, PENDING_CONNECTIONS) < 0) {
         perror("listen");
         exit(EXIT_FAILURE);
     }
@@ -231,16 +261,16 @@ int main (int argc, char ** argv) {
     int addrlen = sizeof(address);
     puts("Waiting for connections ...");
 
-    while(TRUE)
-    {
+    while(true) {
+
         //clear the socket set
         FD_ZERO(&readfds);
 
         //add master socket to set
         FD_SET(master_socket, &readfds);
-        max_sd = master_socket;
-        max_sd = add_to_set(&readfds, max_sd, client_socket);
-        max_sd = add_to_set(&readfds, max_sd, server_socket);
+        int max_sd = master_socket;
+        max_sd = add_to_set(&readfds, max_sd, client_socket, max_clients);
+        max_sd = add_to_set(&readfds, max_sd, server_socket, max_clients);
 
         // Wait for an activity on one of the sockets. Timeout is NULL, so
         // wait indefinitely
@@ -282,7 +312,7 @@ int main (int argc, char ** argv) {
                     printf("Adding to list of client sockets as %d\n" , i);
                     //Create pop3 socket
                     if ((server_socket[i] = create_server_socket(
-                            origin_server, origin_port)) == 0){
+                            opt.origin_server, opt.origin_port)) == 0){
                         perror("socket failed");
                         exit(EXIT_FAILURE);
                     }
@@ -298,49 +328,25 @@ int main (int argc, char ** argv) {
             ssize_t valread;
 
             // if a client descriptor was set
-            if (FD_ISSET( client_sd , &readfds)) {
+            if (FD_ISSET(client_sd, &readfds)) {
                 //Check if it was for closing and also read the incoming message
-                if ((valread = read( client_sd , buffer, BUFFER_SIZE)) == 0) {
-
-                    //Somebody disconnected , get his details and print
-                    getpeername(client_sd , (struct sockaddr*)&address,
-                                (socklen_t*)&addrlen);
-                    printf("Client disconnected , ip %s , port %d \n",
-                           inet_ntoa(address.sin_addr),
-                           ntohs(address.sin_port));
-
-                    //Close the socket and mark as 0 in list for reuse
-                    close( client_sd );
-                    close(server_sd);
-                    client_socket[i] = 0;
-                    server_socket[i] = 0;
+                if ((valread = read(client_sd, buffer, BUFFER_SIZE)) == 0) {
+                    end_connection(address, i, client_sd, client_socket,
+                                   server_socket);
                 }
-
                     //Send to server
                 else {
                     // set the string terminating NULL byte on the end of the
                     // data read
                     buffer[valread] = '\0';
-
                     send(server_sd, buffer, strlen(buffer), 0);
-
                 }
                 // if a server descriptor was set
-            } else if (FD_ISSET( server_sd , &readfds)) {
+            } else if (FD_ISSET(server_sd, &readfds)) {
 
                 if ((valread = read(server_sd, buffer, BUFFER_SIZE)) == 0) {
-                    //Server disconnected , get his details and print
-                    getpeername(server_sd, (struct sockaddr *) &address,
-                                (socklen_t *) &addrlen);
-                    printf("Server disconnected , ip %s , port %d \n",
-                           inet_ntoa(address.sin_addr),
-                           ntohs(address.sin_port));
-
-                    //Close the socket and mark as 0 in list for reuse
-                    close(client_sd);
-                    close(server_sd);
-                    client_socket[i] = 0;
-                    server_socket[i] = 0;
+                    end_connection(address, i, server_sd, client_socket,
+                                   server_socket);
                 }
                     //Send to client
                 else {
