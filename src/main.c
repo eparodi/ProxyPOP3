@@ -138,15 +138,15 @@ options parse_options(int argc, char **argv) {
                 break;
                 /* Management SCTP port */
             case 'o':
-                opt.management_port = atoi(optarg);
+                opt.management_port = (uint16_t) atoi(optarg);
                 break;
                 /* proxy port */
             case 'p':
-                opt.port = atoi(optarg);
+                opt.port = (uint16_t) atoi(optarg);
                 break;
                 /* pop3 server port*/
             case 'P':
-                opt.origin_port = atoi(optarg);
+                opt.origin_port = (uint16_t) atoi(optarg);
                 break;
             case 't': {
                 opt.filter_command = optarg;
@@ -204,29 +204,13 @@ void end_connection(struct sockaddr_in address, int client, int sd,
     server_socket[client] = 0;
 }
 
-int main (int argc, char ** argv) {
-
-    options opt = parse_options(argc,argv);
-
-    int sock_opt         = true;
-    int max_clients = FD_SETSIZE;
-    // initialise all client_socket[] and server_socket[] to 0 so not checked
-    int client_socket[FD_SETSIZE] = {0};
-    int server_socket[FD_SETSIZE] = {0};
-    struct sockaddr_in address;
-
-    char buffer[BUFFER_SIZE];  //data buffer of 1K
-
-    // set of socket descriptors
-    fd_set readfds;
-
-    // a message
-    char *message = "POP3 Proxy v1.0 \r\n";
-
+int create_master_socket(int protocol, struct sockaddr_in * addr){
     int master_socket;
+    int sock_opt = true;
+    struct sockaddr_in address = * addr;
 
-    // create a master socket
-    if ((master_socket = socket(AF_INET , SOCK_STREAM , 0)) == 0) {
+    // create a master tcp socket
+    if ((master_socket = socket(AF_INET , SOCK_STREAM , protocol)) == 0) {
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
@@ -239,26 +223,65 @@ int main (int argc, char ** argv) {
         exit(EXIT_FAILURE);
     }
 
-    //type of socket created
-    address.sin_family      = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port        = htons(opt.port);
-
     //bind the socket to localhost port
     if (bind(master_socket, (struct sockaddr *)&address, sizeof(address))<0) {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
-    printf("Listening on port %d \n", opt.port);
+
+    return master_socket;
+}
+
+int main (int argc, char ** argv) {
+
+    options opt = parse_options(argc,argv);
+
+    int max_clients = FD_SETSIZE;
+    // initialise all client_socket[] and server_socket[] to 0 so not checked
+    int client_socket[FD_SETSIZE] = {0};
+    int server_socket[FD_SETSIZE] = {0};
+    struct sockaddr_in address_proxy;
+
+    //type of socket created
+    address_proxy.sin_family      = AF_INET;
+    address_proxy.sin_addr.s_addr = INADDR_ANY;
+    address_proxy.sin_port        = htons(opt.port);
+
+    struct sockaddr_in address_management;
+
+    address_management.sin_family      = AF_INET;
+    address_management.sin_addr.s_addr = INADDR_ANY;
+    address_management.sin_port        = htons(opt.management_port);
+
+    char buffer[BUFFER_SIZE];  //data buffer of 1K
+
+    // set of socket descriptors
+    fd_set readfds;
+
+    // a message
+    char *message = "POP3 Proxy v1.0 \r\n";
+
+    int master_tcp_socket = create_master_socket(IPPROTO_TCP, &address_proxy);
+    int master_sctp_socket = create_master_socket(IPPROTO_SCTP, &address_management);
 
     //try to specify maximum of 3 pending connections for the master socket
-    if (listen(master_socket, PENDING_CONNECTIONS) < 0) {
+    if (listen(master_tcp_socket, PENDING_CONNECTIONS) < 0) {
         perror("listen");
         exit(EXIT_FAILURE);
     }
 
+    printf("Listening on TCP port %d \n", opt.port);
+
+    //try to specify maximum of 3 pending connections for the master socket
+    if (listen(master_sctp_socket, PENDING_CONNECTIONS) < 0) {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Listening on STCP port %d \n", opt.management_port);
+
     //accept the incoming connection
-    int addrlen = sizeof(address);
+    int addrlen = sizeof(struct sockaddr_in);
     puts("Waiting for connections ...");
 
     while(true) {
@@ -267,8 +290,8 @@ int main (int argc, char ** argv) {
         FD_ZERO(&readfds);
 
         //add master socket to set
-        FD_SET(master_socket, &readfds);
-        int max_sd = master_socket;
+        FD_SET(master_tcp_socket, &readfds);
+        int max_sd = master_tcp_socket;
         max_sd = add_to_set(&readfds, max_sd, client_socket, max_clients);
         max_sd = add_to_set(&readfds, max_sd, server_socket, max_clients);
 
@@ -282,9 +305,9 @@ int main (int argc, char ** argv) {
 
         // If something happened on the master socket, then its an incoming
         // connection
-        if (FD_ISSET(master_socket, &readfds)) {
+        if (FD_ISSET(master_tcp_socket, &readfds)) {
             int new_socket;
-            if ((new_socket = accept(master_socket, (struct sockaddr *)&address,
+            if ((new_socket = accept(master_tcp_socket, (struct sockaddr *)&address_proxy,
                                      (socklen_t*)&addrlen))<0) {
                 perror("accept");
                 exit(EXIT_FAILURE);
@@ -293,8 +316,8 @@ int main (int argc, char ** argv) {
             //inform user of socket number - used in send and receive commands
             printf("New connection, socket fd is %d , ip is : %s , port : %d \n",
                    new_socket,
-                   inet_ntoa(address.sin_addr),
-                   ntohs(address.sin_port));
+                   inet_ntoa(address_proxy.sin_addr),
+                   ntohs(address_proxy.sin_port));
 
             //send new connection greeting message
             if( send(new_socket, message, strlen(message), 0) !=
@@ -331,7 +354,7 @@ int main (int argc, char ** argv) {
             if (FD_ISSET(client_sd, &readfds)) {
                 //Check if it was for closing and also read the incoming message
                 if ((valread = read(client_sd, buffer, BUFFER_SIZE)) == 0) {
-                    end_connection(address, i, client_sd, client_socket,
+                    end_connection(address_proxy, i, client_sd, client_socket,
                                    server_socket);
                 }
                     //Send to server
@@ -345,7 +368,7 @@ int main (int argc, char ** argv) {
             } else if (FD_ISSET(server_sd, &readfds)) {
 
                 if ((valread = read(server_sd, buffer, BUFFER_SIZE)) == 0) {
-                    end_connection(address, i, server_sd, client_socket,
+                    end_connection(address_proxy, i, server_sd, client_socket,
                                    server_socket);
                 }
                     //Send to client
