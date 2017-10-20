@@ -240,6 +240,7 @@ int main (int argc, char ** argv) {
     // initialise all client_socket[] and server_socket[] to 0 so not checked
     int client_socket[FD_SETSIZE] = {0};
     int server_socket[FD_SETSIZE] = {0};
+    int sctp_socket[FD_SETSIZE] = {0};
     struct sockaddr_in address_proxy;
 
     //type of socket created
@@ -257,7 +258,7 @@ int main (int argc, char ** argv) {
 
     // set of socket descriptors
     fd_set readfds;
-
+    fd_set sctpfds;
     // a message
     char *message = "POP3 Proxy v1.0 \r\n";
 
@@ -288,6 +289,7 @@ int main (int argc, char ** argv) {
 
         //clear the socket set
         FD_ZERO(&readfds);
+        FD_ZERO(&sctpfds);
 
         //add master socket to set
         FD_SET(master_tcp_socket, &readfds);
@@ -297,9 +299,21 @@ int main (int argc, char ** argv) {
 
         // Wait for an activity on one of the sockets. Timeout is NULL, so
         // wait indefinitely
-        int activity = select( max_sd + 1 , &readfds , NULL , NULL , NULL);
+        struct timespec waitd = {0, 1000000};          // the max wait time for an event
 
-        if ((activity < 0) && (errno!=EINTR)) {
+        int activity1 = pselect( max_sd + 1 , &readfds , NULL , NULL , &waitd, NULL);
+
+        if ((activity1 < 0) && (errno!=EINTR)) {
+            printf("select error");
+        }
+
+        FD_SET(master_sctp_socket, &sctpfds);
+        int max_sd_sctp = master_sctp_socket;
+        max_sd_sctp = add_to_set(&sctpfds, max_sd_sctp, sctp_socket, max_clients);
+
+        int activity2 = pselect( max_sd_sctp + 1 , &sctpfds , NULL , NULL , &waitd, NULL);
+
+        if ((activity2 < 0) && (errno!=EINTR)) {
             printf("select error");
         }
 
@@ -314,7 +328,7 @@ int main (int argc, char ** argv) {
             }
 
             //inform user of socket number - used in send and receive commands
-            printf("New connection, socket fd is %d , ip is : %s , port : %d \n",
+            printf("New TCP connection, socket fd is %d , ip is : %s , port : %d \n",
                    new_socket,
                    inet_ntoa(address_proxy.sin_addr),
                    ntohs(address_proxy.sin_port));
@@ -344,10 +358,44 @@ int main (int argc, char ** argv) {
             }
         }
 
+        if (FD_ISSET(master_sctp_socket, &sctpfds)){
+            int new_socket;
+            if ((new_socket = accept(master_sctp_socket, (struct sockaddr *)&address_management,
+                                     (socklen_t*)&addrlen))<0) {
+                perror("accept");
+                exit(EXIT_FAILURE);
+            }
+
+            //inform user of socket number - used in send and receive commands
+            printf("New SCTP connection, socket fd is %d , ip is : %s , port : %d \n",
+                   new_socket,
+                   inet_ntoa(address_management.sin_addr),
+                   ntohs(address_management.sin_port));
+
+            //send new connection greeting message
+            if( send(new_socket, message, strlen(message), 0) !=
+                strlen(message) ) {
+                perror("send");
+            }
+
+            puts("Welcome message sent successfully");
+
+            //add new socket to array of sockets
+            for (int i = 0; i < max_clients; i++) {
+                //if position is empty
+                if ( sctp_socket[i] == 0 ) {
+                    sctp_socket[i] = new_socket;
+                    printf("Adding to list of client sockets as %d\n" , i);
+                    break;
+                }
+            }
+        }
+
         //else its some IO operation on some other socket :)
         for (int i = 0; i < max_clients; i++) {
             int server_sd = server_socket[i];
             int client_sd = client_socket[i];
+            int sctp_sd = sctp_socket[i];
             ssize_t valread;
 
             // if a client descriptor was set
@@ -377,6 +425,20 @@ int main (int argc, char ** argv) {
                     // end of the data read
                     buffer[valread] = '\0';
                     send(client_sd, buffer, strlen(buffer), 0);
+                }
+            } else if (FD_ISSET(sctp_sd, &sctpfds)){
+                if ((valread = read(sctp_sd, buffer, BUFFER_SIZE)) == 0) {
+                    printf("Client disconnected , ip %s , port %d \n",
+                           inet_ntoa(address_management.sin_addr),
+                           ntohs(address_management.sin_port));
+                    close(sctp_sd);
+                }
+                    //Send to client
+                else {
+                    // set the string terminating NULL byte on the
+                    // end of the data read
+                    buffer[valread] = '\0';
+                    send(sctp_sd, buffer, strlen(buffer), 0);
                 }
             }
         }
