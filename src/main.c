@@ -85,10 +85,8 @@ int main (int argc, char ** argv) {
     close(0);
 
     const char       *err_msg;
-    selector_status   ss_pop3      = SELECTOR_SUCCESS;
-    fd_selector selector_pop3      = NULL;
-    selector_status   ss_manag     = SELECTOR_SUCCESS;
-    fd_selector selector_manag     = NULL;
+    selector_status   ss      = SELECTOR_SUCCESS;
+    fd_selector selector      = NULL;
 
     const struct selector_init conf = {
             .signal = SIGALRM,
@@ -102,17 +100,12 @@ int main (int argc, char ** argv) {
         goto finally;
     }
 
-    selector_pop3 = selector_new(1024);
-    if(selector_pop3 == NULL) {
-        err_msg = "unable to create selector_pop3";
+    selector = selector_new(1024);
+    if(selector == NULL) {
+        err_msg = "unable to create selector";
         goto finally;
     }
 
-    selector_manag = selector_new(1024);
-    if(selector_manag == NULL) {
-        err_msg = "unable to create selector_pop3";
-        goto finally;
-    }
     const struct fd_handler pop3_handler = {
             .handle_read       = &pop3_accept_connection,
             .handle_write      = NULL,
@@ -125,9 +118,9 @@ int main (int argc, char ** argv) {
             .handle_close      = NULL,
     };
 
-    ss_pop3 = selector_register(selector_pop3, master_tcp_socket, &pop3_handler, OP_READ, NULL);
+    selector_status ss_pop3 = selector_register(selector, master_tcp_socket, &pop3_handler, OP_READ, NULL);
 
-    ss_manag = selector_register(selector_manag, master_sctp_socket, &management_handler, OP_READ, NULL);
+    selector_status ss_manag = selector_register(selector, master_sctp_socket, &management_handler, OP_READ, NULL);
 
     if(ss_pop3 != SELECTOR_SUCCESS || ss_manag != SELECTOR_SUCCESS) {
         err_msg = "registering fd";
@@ -136,9 +129,8 @@ int main (int argc, char ** argv) {
 
     for(;;) {
         err_msg  = NULL;
-        ss_pop3  = selector_select(selector_pop3);
-        ss_manag = selector_select(selector_manag);
-        if(ss_pop3 != SELECTOR_SUCCESS || ss_manag != SELECTOR_SUCCESS) {
+        ss  = selector_select(selector);
+        if(ss != SELECTOR_SUCCESS) {
             err_msg = "serving";
             break;
         }
@@ -151,7 +143,7 @@ int main (int argc, char ** argv) {
     int ret = 0;
 
     finally:
-    if(ss_pop3 != SELECTOR_SUCCESS) {
+    if(ss!= SELECTOR_SUCCESS) {
         fprintf(stderr, "%s: %s\n", (err_msg == NULL) ? "": err_msg,
                 ss_pop3 == SELECTOR_IO
                 ? strerror(errno)
@@ -161,8 +153,8 @@ int main (int argc, char ** argv) {
         perror(err_msg);
         ret = 1;
     }
-    if(selector_pop3 != NULL) {
-        selector_destroy(selector_pop3);
+    if(selector!= NULL) {
+        selector_destroy(selector);
     }
     selector_close();
 
