@@ -1,10 +1,7 @@
-#include <stdint.h>
-#include <netinet/in.h>
+#ifndef TPE_PROTOS_PARAMETERS_C_H
+#define TPE_PROTOS_PARAMETERS_C_H
 
-#ifndef TPE_PROTOS_MAIN_H
-#define TPE_PROTOS_MAIN_H
-
-typedef struct {
+struct options {
     uint16_t port;
     char * error_file;
     char * listen_address;
@@ -16,6 +13,12 @@ typedef struct {
     uint16_t origin_port;
     char *filter_command;
 
-} options;
+};
 
-#endif //TPE_PROTOS_MAIN_H
+typedef struct options * options;
+
+options parse_options(int argc, char **argv);
+
+extern options parameters;
+
+#endif
