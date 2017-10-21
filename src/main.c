@@ -11,6 +11,7 @@
 #include "selector.h"
 #include "parameters.h"
 #include "pop3.h"
+#include "management.h"
 
 #define PENDING_CONNECTIONS 10
 
@@ -119,7 +120,7 @@ int main (int argc, char ** argv) {
     };
 
     const struct fd_handler management_handler = {
-            .handle_read       = NULL,
+            .handle_read       = &management_accept_connection,
             .handle_write      = NULL,
             .handle_close      = NULL,
     };

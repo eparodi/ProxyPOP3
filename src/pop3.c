@@ -8,8 +8,10 @@
 #include <netdb.h>
 #include <errno.h>
 #include <error.h>
+
 #include "selector.h"
 #include "parameters.h"
+#include "utils.h"
 
 #define ATTACHMENT(key) ( (struct pop3 *)(key)->data)
 
@@ -61,10 +63,7 @@ pop3_destroy(struct pop3 * corpse){
     close(corpse->server_fd);
 }
 
-// handler functions.
-char *message = "POP3 Proxy v1.0 \r\n";
-
-void print_connection_status(const char * msg, struct sockaddr_storage addr);
+// handler functions
 int create_server_socket(char * origin_server, int origin_port, struct selector_key *key, struct pop3 *state);
 
 void pop3_accept_connection(struct selector_key *key) {
@@ -97,7 +96,10 @@ void pop3_accept_connection(struct selector_key *key) {
                                              OP_READ, state)) {
         goto fail;
     }
+
+    char * message = "POP3 Proxy Server.\n";
     send(client, message, strlen(message), 0);
+
     int server_socket = create_server_socket(parameters->origin_server, parameters->origin_port, key, state);
     selector_set_interest_key(key, OP_READ);
 
@@ -212,18 +214,4 @@ int create_server_socket(char * origin_server, int origin_port, struct selector_
             close(sock);
         }
         return -1;
-}
-
-void print_connection_status(const char * msg, struct sockaddr_storage addr){
-    char hoststr[NI_MAXHOST];
-    char portstr[NI_MAXSERV];
-
-    getnameinfo((struct sockaddr *)&addr,
-                sizeof(addr), hoststr, sizeof(hoststr), portstr, sizeof(portstr),
-                NI_NUMERICHOST | NI_NUMERICSERV);
-
-    printf("%s: ip %s , port %s \n",
-           msg,
-           hoststr,
-           portstr);
 }
