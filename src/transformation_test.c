@@ -24,7 +24,7 @@ create_arguments(int argc, char * argv[]){
 }
 
 int
-main(int argc, char * argv[]){
+main2(int argc, char * argv[]){
 
   char ** args = create_arguments(argc, argv);
   int pid = fork();

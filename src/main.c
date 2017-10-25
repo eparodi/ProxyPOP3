@@ -77,7 +77,7 @@ int main (int argc, char ** argv) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Listening on STCP port %d \n", opt->management_port);
+    printf("Listening on SCTP port %d \n", opt->management_port);
 
     //accept the incoming connection
     puts("Waiting for connections ...");

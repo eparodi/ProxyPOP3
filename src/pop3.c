@@ -59,8 +59,11 @@ pop3_new(const int client_fd){
 
 void
 pop3_destroy(struct pop3 * corpse){
-    free(corpse);
     close(corpse->server_fd);
+    printf("FD closed (server): %d\n", corpse->server_fd);
+    close(corpse->client_fd);
+    printf("FD closed (client): %d\n", corpse->client_fd);
+    free(corpse);
 }
 
 // handler functions
@@ -80,7 +83,7 @@ void pop3_accept_connection(struct selector_key *key) {
         goto fail;
     }
     print_connection_status("Connection established", client_addr);
-    printf("File descriptor: %d\n", client);
+    printf("FD opened: %d\n", client);
     state = pop3_new(client);
     if(state == NULL) {
         // sin un estado, nos es imposible manejaro.
@@ -108,7 +111,7 @@ void pop3_accept_connection(struct selector_key *key) {
     }
 
     printf("Connection POP3 established. IP: %s, PORT: %d\n", parameters->origin_server, parameters->origin_port);
-    printf("File descriptor: %d\n", server_socket);
+    printf("FD opened: %d\n", server_socket);
 
     state->server_fd = server_socket;
     return ;
@@ -121,9 +124,24 @@ void pop3_accept_connection(struct selector_key *key) {
 }
 
 void
+pop3_close_connection(struct selector_key * key, struct pop3 * data) {
+    if (key->fd == data->client_fd) {
+        print_connection_status("Connection closed by client", data->client_addr);
+    } else {
+        print_connection_status("Connection closed by server", data->client_addr);
+    }
+    selector_unregister_fd(key->s, data->server_fd);
+    selector_unregister_fd(key->s, data->client_fd);
+    pop3_destroy(data);
+}
+
+void
 pop3_read(struct selector_key *key){
     struct pop3 *data = ATTACHMENT(key);
     ssize_t length = read(data->client_fd, data->buffer, 99);
+    if (length <= 0) {
+        pop3_close_connection(key, data);
+    }
     data->buffer[length] = '\0';
     send(data->server_fd, data->buffer, strlen(data->buffer), 0);
 }
@@ -134,6 +152,9 @@ pop3_write(struct selector_key *key){
     ssize_t length = read(data->server_fd, data->buffer, 99);
     if (length == -1)  // TODO: @ELISEO PARODI ALMARAZ FIX THIS OR YOU ARE GONNA DIE AND THEN RECURSE, YOUR PAST YOU.
         return;
+    if (length == 0) {
+        pop3_close_connection(key, data);
+    }
     data->buffer[length] = '\0';
     send(data->client_fd, data->buffer, strlen(data->buffer), 0);
 }
@@ -143,11 +164,13 @@ pop3_block(struct selector_key *key){
 
 }
 
+// Esta funcion de callback se llamaba dos veces cuando haciamos los dos unregister,
+// por eso rompia en pop3_destroy por doble free
 void
 pop3_close(struct selector_key *key){
-    struct pop3 * data = ATTACHMENT(key);
-    print_connection_status("Connection disconnected", data->client_addr);
-    pop3_destroy(data);
+    //struct pop3 * data = ATTACHMENT(key);
+    //print_connection_status("Connection disconnected", data->client_addr);
+    //pop3_destroy(data);
 }
 
 // Connection utilities
@@ -200,7 +223,7 @@ int create_server_socket(char * origin_server, int origin_port, struct selector_
         } else {
             goto error;
         }
-        perror("Connection to origin server failed");
+        //perror("Connection to origin server failed");
     } else {
         // estamos conectados sin esperar... no parece posible
         // saltaríamos directamente a COPY
