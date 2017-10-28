@@ -191,3 +191,4 @@ selector_notify_block(fd_selector s,
                       const int   fd);
 
 #endif
+

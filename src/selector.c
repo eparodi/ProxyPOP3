@@ -17,7 +17,7 @@
 #include <sys/signal.h>
 #include "selector.h"
 
-#define N(x) (sizeof(x)/sizeof(x[0]))
+#define N(x) (sizeof(x)/sizeof((x)[0]))
 
 #define ERROR_DEFAULT_MSG "something failed"
 
@@ -96,7 +96,7 @@ selector_init(const struct selector_init  *c) {
 selector_status
 selector_close(void) {
     // Nada para liberar.
-    // TODO: podriamos reestablecer el handler de la señal.
+    // TODO(juan): podriamos reestablecer el handler de la señal.
     return SELECTOR_SUCCESS;
 }
 
@@ -176,7 +176,7 @@ size_t next_capacity(const size_t n) {
         tmp >>= 1;
         bits++;
     }
-    tmp = 1 << bits;
+    tmp = 1UL << bits;
 
     assert(tmp >= n);
     if(tmp > ITEMS_MAX_SIZE) {
@@ -315,8 +315,9 @@ selector_destroy(fd_selector s) {
                 }
             }
             pthread_mutex_destroy(&s->resolution_mutex);
-            for(struct blocking_job *j = s->resolution_jobs; j != NULL;
-                j = j->next) {
+            struct blocking_job *j, *next;
+            for(j = s->resolution_jobs; j != NULL; j = next) {
+                next = j->next;
                 free(j);
             }
             free(s->fds);
@@ -484,9 +485,9 @@ handle_block_notifications(fd_selector s) {
             .s = s,
     };
     pthread_mutex_lock(&s->resolution_mutex);
-    for(struct blocking_job *j = s->resolution_jobs;
-        j != NULL ;
-        j  = j->next) {
+
+    struct blocking_job *j, *next;
+    for(j = s->resolution_jobs; j != NULL ; j  = next) {
 
         struct item *item = s->fds + j->fd;
         if(ITEM_USED(item)) {
@@ -495,6 +496,7 @@ handle_block_notifications(fd_selector s) {
             item->handler->handle_block(&key);
         }
 
+        next = j->next;
         free(j);
     }
     s->resolution_jobs = 0;
@@ -507,7 +509,7 @@ selector_notify_block(fd_selector  s,
                       const int    fd) {
     selector_status ret = SELECTOR_SUCCESS;
 
-    // TODO usar un pool
+    // TODO(juan): usar un pool
     struct blocking_job *job = malloc(sizeof(*job));
     if(job == NULL) {
         ret = SELECTOR_ENOMEM;
@@ -523,7 +525,7 @@ selector_notify_block(fd_selector  s,
     pthread_mutex_unlock(&s->resolution_mutex);
 
     // notificamos al hilo principal
-    //pthread_kill(s->selector_thread, conf.signal); //TODO: include pthread
+    pthread_kill(s->selector_thread, conf.signal);
 
     finally:
     return ret;
