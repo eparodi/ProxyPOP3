@@ -12,7 +12,10 @@
 #include "selector.h"
 #include "parameters.h"
 #include "utils.h"
+#include "management.h"
+
 #define ATTACHMENT(key) ( (struct management *)(key)->data)
+#define N(x) (sizeof(x)/sizeof(x[0]))
 
 options parameters;
 
@@ -31,15 +34,6 @@ static const struct fd_handler management_handler = {
         .handle_block  = management_block,
 };
 
-struct management{
-    struct sockaddr_storage       client_addr;
-    socklen_t                     client_addr_len;
-    int                           client_fd;
-
-    char                          buffer[100];
-    size_t                        buffer_length;
-};
-
 // management struct functions.
 struct management *
 management_new(const int client_fd){
@@ -50,8 +44,8 @@ management_new(const int client_fd){
     }
 
     ret->client_fd     = client_fd;
-    ret->buffer_length = 100;
-
+    buffer_init(&ret->buffer_write, N(ret->raw_buffer_write),ret->raw_buffer_write);
+    buffer_init(&ret->buffer_read , N(ret->raw_buffer_read) ,ret->raw_buffer_read);
     return ret;
 }
 
@@ -107,9 +101,9 @@ void management_accept_connection(struct selector_key *key) {
 void
 management_read(struct selector_key *key){
     struct management *data = ATTACHMENT(key);
-    ssize_t length = read(data->client_fd, data->buffer, 99);
-    data->buffer[length] = '\0';
-    send(data->client_fd, data->buffer, strlen(data->buffer), 0);
+    if (parse_commands(data) < 0){
+        selector_unregister_fd(key->s, data->client_fd);
+    };
 }
 
 void
@@ -127,4 +121,43 @@ management_close(struct selector_key *key){
     struct management * data = ATTACHMENT(key);
     print_connection_status("Connection disconnected", data->client_addr);
     management_destroy(data);
+}
+
+/* PARSER */
+
+void parse_hello(struct management * data);
+
+struct parse_action{
+    parse_status status;
+    void (* action)(struct management * data);
+};
+
+static const struct parse_action hello_action = {
+        .status      = ST_HELO,
+        .action      = parse_hello,
+};
+
+//static const struct parse_action action_list[] = {
+//        hello_action,
+//};
+
+int
+parse_commands(struct management *data){
+    size_t count;
+    uint8_t * ptr;
+    ptr = buffer_write_ptr(&data->buffer_read, &count);
+    ssize_t length = recv(data->client_fd, ptr, count, 0);
+    if (length > 0){
+        buffer_write_adv(&data->buffer_read, length);
+        ptr = buffer_read_ptr(&data->buffer_read, &count);
+        length = send(data->client_fd, ptr, count, MSG_NOSIGNAL);
+        buffer_read_adv(&data->buffer_read, length);
+    }else{
+        return -1;
+    }
+    return 0;
+}
+
+void parse_hello(struct management * data){
+
 }
