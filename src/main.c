@@ -158,6 +158,8 @@ int main (int argc, char ** argv) {
     }
     selector_close();
 
+    pop3_pool_destroy();
+
     if(master_tcp_socket >= 0) {
         close(master_tcp_socket);
     }
