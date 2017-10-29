@@ -19,6 +19,7 @@
 #include "stm.h"
 #include "pop3.h"
 #include "parameters.h"
+#include "utils.h"
 
 #define N(x) (sizeof(x)/sizeof((x)[0]))
 
@@ -119,8 +120,7 @@ struct pop3 {
     struct addrinfo              *origin_resolution_current;
 
     /** información del origin server */
-    // TODO ver si necesitamos guardar esto porque ya esta en parameters (variable goblal), tal vez lo necesitemos cuando haya que resolver nombres
-    // pero no nos combiene resolver el nombre una sola vez al principio en vez de hacerlo por cada conexion?
+    // TODO resolucion de nombres por cada conexion entrante (puede cambiar la ip de un host)
     struct sockaddr_storage       origin_addr;
     socklen_t                     origin_addr_len;
     int                           origin_domain;
@@ -304,6 +304,9 @@ pop3_passive_accept(struct selector_key *key) {
 // CONNECTING
 ////////////////////////////////////////////////////////////////////////////////
 
+void log_connection(bool opened, const struct sockaddr* clientaddr,
+            const struct sockaddr* originaddr);
+
 int origin_connect(struct selector_key *key);
 
 void
@@ -320,6 +323,13 @@ unsigned
 connecting(struct selector_key *key) {
     struct connecting_st *c = &ATTACHMENT(key)->client.conn;
     origin_connect(key);
+
+    log_connection(true, (const struct sockaddr *)&ATTACHMENT(key)->client_addr,
+                (const struct sockaddr *)&ATTACHMENT(key)->origin_addr);
+
+    //print_connection_status("origin server", ATTACHMENT(key)->origin_addr);
+    //print_connection_status("client", ATTACHMENT(key)->client_addr);
+
     return HELLO_READ;
 }
 
@@ -349,8 +359,8 @@ hello_read(struct selector_key *key) {
     ptr = buffer_write_ptr(d->rb, &count);
     n = recv(key->fd, ptr, count, 0);
 
-    printf("HELLO_READ: %d\n", key->fd);
-    printf("%s\n", ptr);
+    //printf("HELLO_READ: %d\n", key->fd);
+    //printf("%s\n", ptr);
 
     if(n > 0) {
         buffer_write_adv(d->rb, n);
@@ -384,8 +394,8 @@ hello_write(struct selector_key *key) {
     ptr = buffer_read_ptr(d->rb, &count);
     n = send(key->fd, ptr, count, MSG_NOSIGNAL);
 
-    printf("HELLO_WRITE: %d\n", key->fd);
-    printf("%s\n", ptr);
+    //printf("HELLO_WRITE: %d\n", key->fd);
+    //printf("%s\n", ptr);
 
     if(n == -1) {
         ret = ERROR;
@@ -446,8 +456,8 @@ request_read(struct selector_key *key) {
     ptr = buffer_write_ptr(b, &count);
     n = recv(key->fd, ptr, count, 0);
 
-    printf("REQ_READ: %d\n", key->fd);
-    printf("%s\n", ptr);
+    //printf("REQ_READ: %d\n", key->fd);
+    //printf("%s\n", ptr);
 
     if(n > 0) {
         buffer_write_adv(b, n);
@@ -496,8 +506,8 @@ request_write(struct selector_key *key) {
     ptr = buffer_read_ptr(b, &count);
     n = send(key->fd, ptr, count, MSG_NOSIGNAL);
 
-    printf("REQ_WRITE: %d\n", key->fd);
-    printf("%s\n", ptr);
+    //printf("REQ_WRITE: %d\n", key->fd);
+    //printf("%s\n", ptr);
 
     if(n == -1) {
         ret = ERROR;
@@ -550,8 +560,8 @@ response_read(struct selector_key *key) {
     ptr = buffer_write_ptr(d->rb, &count);
     n = recv(key->fd, ptr, count, 0);
 
-    printf("RESP_READ: %d\n", key->fd);
-    printf("%s\n", ptr);
+    //printf("RESP_READ: %d\n", key->fd);
+    //printf("%s\n", ptr);
 
     if(n > 0) {
         buffer_write_adv(d->rb, n);
@@ -591,8 +601,8 @@ response_write(struct selector_key *key) {
     ptr = buffer_read_ptr(d->rb, &count);
     n = send(key->fd, ptr, count, MSG_NOSIGNAL);
 
-    printf("RESP_WRITE: %d\n", key->fd);
-    printf("%s\n", ptr);
+    //printf("RESP_WRITE: %d\n", key->fd);
+    //printf("%s\n", ptr);
 
     if(n == -1) {
         ret = ERROR;
@@ -716,6 +726,9 @@ pop3_done(struct selector_key *key) {
             close(fds[i]);
         }
     }
+
+    log_connection(false, (const struct sockaddr *)&ATTACHMENT(key)->client_addr,
+                   (const struct sockaddr *)&ATTACHMENT(key)->origin_addr);
 }
 
 // Connection utilities
@@ -741,11 +754,13 @@ origin_connect(struct selector_key *key) {
     }
 
     /* Construct the server address structure */
-    struct sockaddr_in servAddr;            /* Server address */
-    memset(&servAddr, 0, sizeof(servAddr)); /* Zero out structure */
-    servAddr.sin_family = AF_INET;          /* IPv4 address family */
+    struct sockaddr_in origin_addr;            /* Server address */
+    socklen_t origin_addr_len;
+
+    memset(&origin_addr, 0, sizeof(origin_addr)); /* Zero out structure */
+    origin_addr.sin_family = AF_INET;          /* IPv4 address family */
     // Convert address
-    int rtnVal = inet_pton(AF_INET, origin_server, &servAddr.sin_addr.s_addr);
+    int rtnVal = inet_pton(AF_INET, origin_server, &origin_addr.sin_addr.s_addr);
     if (rtnVal == 0) {
         perror("inet_pton() failed - invalid address string");
         goto error;
@@ -753,10 +768,12 @@ origin_connect(struct selector_key *key) {
         perror("inet_pton() failed");
         goto error;
     }
-    servAddr.sin_port = htons(origin_port);    /* Server port */
+    origin_addr.sin_port = htons(origin_port);    /* Server port */
+
+    origin_addr_len = sizeof(origin_addr);
 
     /* Establish the connection to the echo server */
-    if (connect(sock, (struct sockaddr *) &servAddr, sizeof(servAddr)) < 0) {
+    if (connect(sock, (struct sockaddr *) &origin_addr, origin_addr_len) < 0) {
         if(errno == EINPROGRESS) {
             // es esperable,  tenemos que esperar a la conexión
 
@@ -772,6 +789,8 @@ origin_connect(struct selector_key *key) {
                 goto error;
             }
             ATTACHMENT(key)->references += 1;
+            memcpy(&ATTACHMENT(key)->origin_addr, &origin_addr, origin_addr_len);
+            ATTACHMENT(key)->origin_addr_len = origin_addr_len;
         } else {
             goto error;
         }
@@ -788,4 +807,33 @@ origin_connect(struct selector_key *key) {
             close(sock);
         }
         return -1;
+}
+
+/** loguea la conexion a stdout */
+void
+log_connection(bool opened, const struct sockaddr* clientaddr,
+               const struct sockaddr* originaddr) {
+    char cbuff[SOCKADDR_TO_HUMAN_MIN * 2 + 2 + 32] = { 0 };
+    unsigned n = N(cbuff);
+    time_t now = 0;
+    time(&now);
+
+    // tendriamos que usar gmtime_r pero no está disponible en C99
+    strftime(cbuff, n, "%FT%TZ\t", gmtime(&now));
+    size_t len = strlen(cbuff);
+    sockaddr_to_human(cbuff + len, N(cbuff) - len, clientaddr);
+    strncat(cbuff, "\t", n-1);
+    cbuff[n-1] = 0;
+    len = strlen(cbuff);
+    sockaddr_to_human(cbuff + len, N(cbuff) - len, originaddr);
+
+    fprintf(stdout, "[%c] %s\n", opened? '+':'-', cbuff);
+}
+
+void log_request() {
+
+}
+
+void log_response() {
+
 }
