@@ -73,29 +73,30 @@ struct connecting_st {
 /** usado por HELLO_READ, HELLO_WRITE */
 struct hello_st {
     /** buffer utilizado para I/O */
-    buffer               *rb, *wb;
+    buffer * rb;
 };
 
 
-//todo request
-/** usado por REQUEST_READ, REQUEST_WRITE, REQUEST_RESOLV */
+/** usado por REQUEST_READ y REQUEST_WRITE */
 struct request_st {
     /** buffer utilizado para I/O */
-    buffer                    *rb, *wb;
+    buffer                     *wb;
 
     /** parser */
     struct request             request;
     struct request_parser      parser;
 
     /** el resumen del respuesta a enviar*/
-    enum socks_response_status status;
+    enum socks_response_status status;          //TODO en nuestro caso es +OK o -ERR
 
     const int                 *client_fd;
     int                       *origin_fd;
 };
 
+/** usado por RESPONSE_READ y RESPONSE_WRITE */
 struct response_st {
-
+    /** buffer utilizado para I/O */
+    buffer                     *rb;
 };
 
 /*
@@ -118,7 +119,8 @@ struct pop3 {
     struct addrinfo              *origin_resolution_current;
 
     /** información del origin server */
-    // TODO ver si necesitamos guardar esto porque ya esta en parameters (variable goblal)
+    // TODO ver si necesitamos guardar esto porque ya esta en parameters (variable goblal), tal vez lo necesitemos cuando haya que resolver nombres
+    // pero no nos combiene resolver el nombre una sola vez al principio en vez de hacerlo por cada conexion?
     struct sockaddr_storage       origin_addr;
     socklen_t                     origin_addr_len;
     int                           origin_domain;
@@ -130,12 +132,13 @@ struct pop3 {
 
     /** estados para el client_fd */
     union {
-        struct connecting_st         conn;
+        struct connecting_st      conn;
         struct request_st         request;
     } client;
     /** estados para el origin_fd */
     union {
         struct hello_st           hello;
+        struct response_st        response;
     } orig;
 
     /** buffers para ser usados read_buffer, write_buffer.*/
@@ -327,11 +330,10 @@ connecting(struct selector_key *key) {
 
 /** inicializa las variables de los estados HELLO_… */
 static void
-hello_read_init(const unsigned state, struct selector_key *key) {
+hello_init(const unsigned state, struct selector_key *key) {
     struct hello_st *d = &ATTACHMENT(key)->orig.hello;
 
-    d->rb                              = &(ATTACHMENT(key)->read_buffer);
-    d->wb                              = &(ATTACHMENT(key)->write_buffer);
+    d->rb = &(ATTACHMENT(key)->read_buffer);
 }
 
 /** lee todos los bytes del mensaje de tipo `hello' en server_fd*/
@@ -339,7 +341,7 @@ static unsigned
 hello_read(struct selector_key *key) {
     struct hello_st *d = &ATTACHMENT(key)->orig.hello;
     unsigned  ret      = HELLO_READ;
-    bool  error    = false;
+    bool  error        = false;
     uint8_t *ptr;
     size_t  count;
     ssize_t  n;
@@ -347,14 +349,17 @@ hello_read(struct selector_key *key) {
     ptr = buffer_write_ptr(d->rb, &count);
     n = recv(key->fd, ptr, count, 0);
 
-    printf("READ: %d\n", key->fd);
+    printf("HELLO_READ: %d\n", key->fd);
     printf("%s\n", ptr);
 
     if(n > 0) {
         buffer_write_adv(d->rb, n);
+        //ret = hello_read_process();
         if(SELECTOR_SUCCESS == selector_set_interest_key(key, OP_NOOP)) {
             if (SELECTOR_SUCCESS == selector_set_interest(key->s, ATTACHMENT(key)->client_fd, OP_WRITE)) {
                 ret = HELLO_WRITE;
+            } else {
+                ret = ERROR;
             }
         } else {
             ret = ERROR;
@@ -366,12 +371,12 @@ hello_read(struct selector_key *key) {
     return error ? ERROR : ret;
 }
 
-/** escribe todos los bytes de la respuesta al mensaje `hello' en client_fd */
+/** escribe todos los bytes del mensaje `hello' en client_fd */
 static unsigned
 hello_write(struct selector_key *key) {
     struct hello_st *d = &ATTACHMENT(key)->orig.hello;
 
-    unsigned  ret     = HELLO_WRITE;
+    unsigned  ret      = HELLO_WRITE;
     uint8_t *ptr;
     size_t  count;
     ssize_t  n;
@@ -379,18 +384,19 @@ hello_write(struct selector_key *key) {
     ptr = buffer_read_ptr(d->rb, &count);
     n = send(key->fd, ptr, count, MSG_NOSIGNAL);
 
-    printf("WRITE: %d\n", key->fd);
+    printf("HELLO_WRITE: %d\n", key->fd);
     printf("%s\n", ptr);
 
     if(n == -1) {
         ret = ERROR;
     } else {
         buffer_read_adv(d->rb, n);
+        //ret = hello_write_process();
         if(!buffer_can_read(d->rb)) {
-            if(SELECTOR_SUCCESS == selector_set_interest_key(key, OP_NOOP)) {
-                ret = REQUEST_READ; //TODO cambiar por REQUEST_READ y por OP_READ
-            }
-            else {
+            // el server_fd ya esta en NOOP (seteado en hello_read)
+            if(SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ)) {
+                ret = REQUEST_READ;
+            } else {
                 ret = ERROR;
             }
         }
@@ -399,18 +405,217 @@ hello_write(struct selector_key *key) {
     return ret;
 }
 
+static void
+hello_close(const unsigned state, struct selector_key *key) {
+    struct hello_st * d = &ATTACHMENT(key)->orig.hello;
+    buffer_reset(d->rb);
+    //buffer_reset(d->wb);
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // REQUEST
 ////////////////////////////////////////////////////////////////////////////////
 
+static unsigned request_process(struct selector_key *key, struct request_st * d);
 
+/** inicializa las variables de los estados REQUEST_… */
+static void
+request_init(const unsigned state, struct selector_key *key) {
+    struct request_st * d = &ATTACHMENT(key)->client.request;
+
+    d->wb              = &(ATTACHMENT(key)->write_buffer);
+    d->parser.request  = &d->request;
+    request_parser_init(&d->parser);
+    d->client_fd       = &ATTACHMENT(key)->client_fd;
+    d->origin_fd       = &ATTACHMENT(key)->origin_fd;
+}
+
+/** Lee la request del cliente */
+static unsigned
+request_read(struct selector_key *key) {
+    struct request_st * d = &ATTACHMENT(key)->client.request;
+
+    buffer *b     = d->wb;
+    unsigned  ret   = REQUEST_READ;
+    bool  error = false;
+    uint8_t *ptr;
+    size_t  count;
+    ssize_t  n;
+
+    ptr = buffer_write_ptr(b, &count);
+    n = recv(key->fd, ptr, count, 0);
+
+    printf("REQ_READ: %d\n", key->fd);
+    printf("%s\n", ptr);
+
+    if(n > 0) {
+        buffer_write_adv(b, n);
+        ret = request_process(key, d); //
+        //TODO descomentar lo siguiente cuando este implementado nuestro parser de request
+//        enum request_state st = request_consume(b, &d->parser, &error);
+//        if(request_is_done(st, 0)) {
+//            ret = request_process(key, d);
+//        }
+    } else {
+        ret = ERROR;
+    }
+
+    //return error ? ERROR : ret; // TODO cuando hagamos nuestro request_parser descomentar esto
+    return ret;
+}
+
+static unsigned
+request_process(struct selector_key *key, struct request_st * d) {
+    enum pop3_state ret = REQUEST_WRITE;
+
+    // transparente
+    if (ret == REQUEST_WRITE) {
+        if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_NOOP)) {
+            if (SELECTOR_SUCCESS != selector_set_interest(key->s, ATTACHMENT(key)->origin_fd, OP_WRITE)) {
+                ret = ERROR;
+            }
+        } else {
+            ret = ERROR;
+        }
+    }
+
+    return ret;
+}
+/** Escrible la request en el server */
+static unsigned
+request_write(struct selector_key *key) {
+    struct request_st *d = &ATTACHMENT(key)->client.request;
+
+    unsigned  ret      = REQUEST_WRITE;
+    buffer *b          = d->wb;
+    uint8_t *ptr;
+    size_t  count;
+    ssize_t  n;
+
+    ptr = buffer_read_ptr(b, &count);
+    n = send(key->fd, ptr, count, MSG_NOSIGNAL);
+
+    printf("REQ_WRITE: %d\n", key->fd);
+    printf("%s\n", ptr);
+
+    if(n == -1) {
+        ret = ERROR;
+    } else {
+        buffer_read_adv(b, n);
+        if(!buffer_can_read(b)) {
+            // el client_fd ya esta en NOOP (seteado en request_read)
+            if(SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ)) {
+                ret = RESPONSE_READ;
+            } else {
+                ret = ERROR;
+            }
+        }
+    }
+
+    return ret;
+}
+
+static void
+request_close_(const unsigned state, struct selector_key *key) {
+    struct request_st * d = &ATTACHMENT(key)->client.request;
+    buffer_reset(d->wb);
+    //buffer_reset(d->rb);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // RESPONSE
 ////////////////////////////////////////////////////////////////////////////////
 
+static unsigned response_process(struct selector_key *key, struct response_st * d);
 
+/** inicializa las variables de los estados RESPONSE_… */
+static void
+response_init(const unsigned state, struct selector_key *key) {
+    struct response_st * d = &ATTACHMENT(key)->orig.response;
 
+    d->rb = &(ATTACHMENT(key)->read_buffer);
+}
+
+/** Lee la respuesta del origin server*/
+static unsigned
+response_read(struct selector_key *key) {
+    struct response_st *d = &ATTACHMENT(key)->orig.response;
+    unsigned  ret      = RESPONSE_READ;
+    bool  error        = false;
+    uint8_t *ptr;
+    size_t  count;
+    ssize_t  n;
+
+    ptr = buffer_write_ptr(d->rb, &count);
+    n = recv(key->fd, ptr, count, 0);
+
+    printf("RESP_READ: %d\n", key->fd);
+    printf("%s\n", ptr);
+
+    if(n > 0) {
+        buffer_write_adv(d->rb, n);
+        ret = response_process(key, &ATTACHMENT(key)->orig.response);
+    } else {
+        ret = ERROR;
+    }
+
+    return error ? ERROR : ret;
+}
+
+static unsigned
+response_process(struct selector_key *key, struct response_st * d) {
+    enum pop3_state ret = RESPONSE_WRITE;
+
+    if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_NOOP)) {
+        if (SELECTOR_SUCCESS != selector_set_interest(key->s, ATTACHMENT(key)->client_fd, OP_WRITE)) {
+            ret = ERROR;
+        }
+    } else {
+        ret = ERROR;
+    }
+
+    return ret;
+}
+
+/** Escrible la respuesta en el cliente */
+static unsigned
+response_write(struct selector_key *key) {
+    struct response_st *d = &ATTACHMENT(key)->orig.response;
+
+    enum pop3_state  ret      = RESPONSE_WRITE;
+    uint8_t *ptr;
+    size_t  count;
+    ssize_t  n;
+
+    ptr = buffer_read_ptr(d->rb, &count);
+    n = send(key->fd, ptr, count, MSG_NOSIGNAL);
+
+    printf("RESP_WRITE: %d\n", key->fd);
+    printf("%s\n", ptr);
+
+    if(n == -1) {
+        ret = ERROR;
+    } else {
+        buffer_read_adv(d->rb, n);
+        if (!buffer_can_read(d->rb)) {
+            if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ)) {
+                ret = REQUEST_READ;
+            } else {
+                ret = ERROR;
+            }
+        }
+    }
+
+    return ret;
+}
+
+static void
+response_close(const unsigned state, struct selector_key *key) {
+    struct response_st * d = &ATTACHMENT(key)->orig.response;
+    buffer_reset(d->rb);
+    //buffer_reset(d->wb);
+}
 
 /** definición de handlers para cada estado */
 static const struct state_definition client_statbl[] = {
@@ -420,20 +625,29 @@ static const struct state_definition client_statbl[] = {
                 .on_write_ready   = connecting,
         },{
                 .state            = HELLO_READ,
-                .on_arrival       = hello_read_init,
+                .on_arrival       = hello_init,
                 .on_read_ready    = hello_read,
         },{
                 .state            = HELLO_WRITE,
                 .on_write_ready   = hello_write,
+                .on_departure     = hello_close,
         },{
                 .state            = REQUEST_READ,
+                .on_arrival       = request_init,
+                .on_read_ready    = request_read,
 
         },{
-                .state            = REQUEST_WRITE
+                .state            = REQUEST_WRITE,
+                .on_write_ready   = request_write,
+                .on_departure     = request_close_,
         },{
-                .state            = RESPONSE_READ
+                .state            = RESPONSE_READ,
+                .on_arrival       = response_init,
+                .on_read_ready    = response_read,
         },{
-                .state            = RESPONSE_WRITE
+                .state            = RESPONSE_WRITE,
+                .on_write_ready   = response_write,
+                .on_departure     = response_close,
         },{
                 .state            = DONE,
 
