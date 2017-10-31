@@ -8,6 +8,10 @@
 
 #include "buffer.h"
 
+
+#define CMD_SIZE    6
+#define PARAM_SIZE  40
+
 /*
  * POP3 Request:
  *
@@ -18,20 +22,20 @@
 
 enum pop3_req_cmd {
     pop3_req_quit,
+    pop3_req_retr,
     pop3_req_other, //TODO
 };
 
 struct request {
     enum pop3_req_cmd   cmd;
-    int                 i;
+    unsigned            i, j, count;
     // TODO podria usar buffer.c
-    char                cmd_buffer[5];
-    char                pop3_req_param[40];  //TODO ver RFC pop3 si acepta mas de un parametro
+    char                cmd_buffer[CMD_SIZE];
+    char                pop3_req_param[PARAM_SIZE];  //TODO ver RFC pop3 si acepta mas de un parametro
 };
 
 enum request_state {
    request_cmd,
-   request_space,
    request_param,
 
     // apartir de aca están done
@@ -95,14 +99,13 @@ void
 request_close(struct request_parser *p);
 
 /**
- * serializa en buff la respuesta al request.
+ * serializa la request en buff
  *
  * Retorna la cantidad de bytes ocupados del buffer o -1 si no había
  * espacio suficiente.
  */
 extern int
-request_marshall(buffer *b,
-                 const enum pop3_response_status status);
+request_marshall(struct request *r, buffer *b);
 
 
 /** convierte a errno en pop3_response_status */

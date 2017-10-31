@@ -467,11 +467,11 @@ request_read(struct selector_key *key) {
 
     if(n > 0) {
         buffer_write_adv(b, n);
-        ret = request_process(key, d);
-//        enum request_state st = request_consume(b, &d->parser, &error);
-//        if(request_is_done(st, 0)) {
-//            ret = request_process(key, d);
-//        }
+//        ret = request_process(key, d);
+        enum request_state st = request_consume(b, &d->parser, &error);
+        if(request_is_done(st, 0)) {
+            ret = request_process(key, d);
+        }
     } else {
         ret = ERROR;
     }
@@ -483,25 +483,19 @@ static unsigned
 request_process(struct selector_key *key, struct request_st * d) {
     enum pop3_state ret = REQUEST_WRITE;
 
-//    switch (d->request.cmd) {
-//        case pop3_req_quit:
-//            ret = DONE;
-//            break;
-//        default:
-//            ret = REQUEST_WRITE;
-//    }
-
     if (ret == REQUEST_WRITE) {
-        if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_NOOP)) {
-            if (SELECTOR_SUCCESS != selector_set_interest(key->s, ATTACHMENT(key)->origin_fd, OP_WRITE)) {
-                ret = ERROR;
-            }
-        } else {
-            ret = ERROR;
-        }
+        selector_status s = 0;
+        s |= selector_set_interest_key(key, OP_NOOP);
+        s |= selector_set_interest(key->s, ATTACHMENT(key)->origin_fd, OP_WRITE);
+
+        ret = SELECTOR_SUCCESS == s ? REQUEST_WRITE : ERROR;
     }
 
-    return ret;
+    if (-1 == request_marshall(&d->request, d->rb)) {
+        ret = ERROR;
+    }
+
+   return ret;
 }
 /** Escrible la request en el server */
 static unsigned
@@ -611,7 +605,10 @@ response_write(struct selector_key *key) {
     } else {
         buffer_read_adv(d->wb, n);
         if (!buffer_can_read(d->wb)) {
-            if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ)) {
+            if (d->request.cmd == pop3_req_quit) {
+                ret = DONE;
+            }
+            else if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ)) {
                 ret = REQUEST_READ;
             } else {
                 ret = ERROR;

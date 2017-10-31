@@ -3,7 +3,7 @@
  */
 #include <string.h> // memset
 #include <arpa/inet.h>
-#include <ctype.h>
+#include <stdio.h>
 
 #include "request.h"
 
@@ -20,58 +20,53 @@ remaining_is_done(struct request_parser* p) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-static enum request_state
-parse_cmd(struct request * r, uint8_t c) {
+static void
+parse_cmd(struct request *r) {
+
     if (strcmp("quit", r->cmd_buffer) == 0) {
         r->cmd = pop3_req_quit;
-        return request_done;
     } else {
         r->cmd = pop3_req_other;
     }
-
-    return request_space;
 }
 
 static enum request_state
 cmd(const uint8_t c, struct request_parser* p) {
-    if (isspace(c) || c == '\n') {
-        return parse_cmd(p->request, c);
+    enum request_state ret = request_cmd;
+    struct request *r = p->request;
+
+    if (c == ' ' || c == '\n') {
+        r->count += r->i + 1; // ' '
+        parse_cmd(p->request);
+        ret = c == ' ' ? request_param : request_done;
+    } else {
+        r->cmd_buffer[r->i++] = c;
+        if (r->i >= CMD_SIZE) {
+            r->count += r->i - 1;
+            ret = request_error;
+        }
     }
 
-    if (!isalpha(c)) {
-        return request_error;
-    }
-
-    struct request * r = p->request;
-    r->cmd_buffer[r->i++] = c;
-
-    return request_cmd;
-}
-
-static enum request_state
-space(const uint8_t c, struct request_parser* p) {
-    if (isspace(c)) {
-        return request_space;
-    }
-
-    p->request->i = 0;
-    return request_param;
+    return ret;
 }
 
 static enum request_state
 param(const uint8_t c, struct request_parser* p) {
+    enum request_state ret = request_param;
+    struct request *r = p->request;
+
     if (c == '\n') {
-        return request_done;
+        r->count += r->j + 1;
+        ret = request_done;
+    } else {
+        r->pop3_req_param[r->j++] = c;
+        if (r->j >= PARAM_SIZE) {
+            r->count += r->j - 1;
+            ret = request_error;
+        }
     }
 
-    struct request * r = p->request;
-    r->pop3_req_param[r->i++] = c;
-
-    if (r->i >= 40) {
-        return request_error;
-    }
-
-    return request_param;
+    return ret;
 }
 
 extern void
@@ -88,9 +83,6 @@ request_parser_feed (struct request_parser* p, const uint8_t c) {
     switch(p->state) {
         case request_cmd:
             next = cmd(c, p);
-            break;
-        case request_space:
-            next = space(c, p);
             break;
         case request_param:
             next = param(c, p);
@@ -135,8 +127,36 @@ request_close(struct request_parser *p) {
     // nada que hacer
 }
 
+//VIVA LA PERU
 extern int
-request_marshall(buffer *b,
-                 const enum pop3_response_status status) {
-    return 10;
+request_marshall(struct request *r, buffer *b) {
+    size_t  n;
+    uint8_t *buff = buffer_write_ptr(b, &n);
+
+    printf("request->count: %d\n", r->count);
+    printf("request->cmd: %s\n", r->cmd_buffer);
+    printf("request->param: %s\n", r->pop3_req_param);
+
+    if(n < r->count) {
+        return -1;
+    }
+
+    memcpy(buff, r->cmd_buffer, r->i);
+    buffer_write_adv(b, r->i);
+
+    buffer_write(b, ' ');
+    buff = buffer_write_ptr(b, &n);
+
+    if (n < r->j + 1) {
+        return -1;
+    }
+
+    memcpy(buff, r->pop3_req_param, r->j);
+    buffer_write_adv(b, r->j);
+
+    buffer_write(b, '\n');
+
+    printf("buffer: %s\n", b->data);
+
+    return r->count;
 }
