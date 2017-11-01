@@ -1,5 +1,5 @@
 /**
- * request.c -- parser del request de SOCKS5
+ * request.c -- parser del request de POP3
  */
 #include <string.h> // memset
 #include <arpa/inet.h>
@@ -20,8 +20,11 @@ remaining_is_done(struct request_parser* p) {
 
 //////////////////////////////////////////////////////////////////////////////
 
+#include <assert.h>
 static void
 parse_cmd(struct request *r) {
+
+    //TODO add parser_utils_stcmpi para cada comando
 
     if (strcmp("quit", r->cmd_buffer) == 0) {
         r->cmd = pop3_req_quit;

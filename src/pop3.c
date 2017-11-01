@@ -11,7 +11,6 @@
 
 #include <arpa/inet.h>
 
-#include "hello.h"
 #include "request.h"
 #include "buffer.h"
 
