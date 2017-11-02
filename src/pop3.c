@@ -10,6 +10,7 @@
 #include <unistd.h>  // close
 
 #include <arpa/inet.h>
+#include <pthread.h>
 
 #include "request.h"
 #include "buffer.h"
@@ -24,6 +25,14 @@
 //TODO PIPELINING
 /** maquina de estados general */
 enum pop3_state {
+    /**
+     *  Resuelve el nombre del origin server
+     *
+     *  Transiciones:
+     *      - CONNECTING    una vez que se resuelve el nombre
+     *
+     */
+            ORIGIN_RESOLV,
     /**
      *  Espera que se establezca la conexion con el origin server
      *
@@ -127,7 +136,6 @@ struct pop3 {
     struct addrinfo              *origin_resolution_current;
 
     /** información del origin server */
-    // TODO resolucion de nombres por cada conexion entrante (puede cambiar la ip de un host)
     struct sockaddr_storage       origin_addr;
     socklen_t                     origin_addr_len;
     int                           origin_domain;
@@ -192,7 +200,7 @@ pop3_new(int client_fd) {
     ret->client_fd       = client_fd;
     ret->client_addr_len = sizeof(ret->client_addr);
 
-    ret->stm    .initial   = CONNECTING;
+    ret->stm    .initial   = ORIGIN_RESOLV;
     ret->stm    .max_state = ERROR;
     ret->stm    .states    = pop3_describe_states();
     stm_init(&ret->stm);
@@ -624,8 +632,100 @@ response_close(const unsigned state, struct selector_key *key) {
     buffer_reset(d->wb);
 }
 
+static void * origin_resolv_blocking(void *data);
+
+unsigned
+origin_resolv(struct selector_key *key){
+
+    pthread_t tid;
+    struct selector_key* k = malloc(sizeof(*key));
+
+    if(k == NULL) {
+        //ret       = REQUEST_WRITE;
+        //d->status = status_general_SOCKS_server_failure;
+        //selector_set_interest_key(key, OP_WRITE);
+    } else {
+        memcpy(k, key, sizeof(*k));
+        if(-1 == pthread_create(&tid, 0,
+                                origin_resolv_blocking, k)) {
+            //ret       = REQUEST_WRITE;
+            //d->status = status_general_SOCKS_server_failure;
+            //selector_set_interest_key(key, OP_WRITE);
+        } else{
+            //ret = REQUEST_RESOLV;
+            selector_set_interest_key(key, OP_NOOP);
+        }
+    }
+
+
+    return ORIGIN_RESOLV;
+}
+
+/**
+ * Realiza la resolución de DNS bloqueante.
+ *
+ * Una vez resuelto notifica al selector para que el evento esté
+ * disponible en la próxima iteración.
+ */
+static void *
+origin_resolv_blocking(void *data) {
+    struct selector_key *key = (struct selector_key *) data;
+    struct pop3       *s   = ATTACHMENT(key);
+
+    pthread_detach(pthread_self());
+    s->origin_resolution = 0;
+    struct addrinfo hints = {
+            .ai_family    = AF_UNSPEC,    /* Allow IPv4 or IPv6 */
+            .ai_socktype  = SOCK_STREAM,  /* Datagram socket */
+            .ai_flags     = AI_PASSIVE,   /* For wildcard IP address */
+            .ai_protocol  = 0,            /* Any protocol */
+            .ai_canonname = NULL,
+            .ai_addr      = NULL,
+            .ai_next      = NULL,
+    };
+
+    char buff[7];
+    snprintf(buff, sizeof(buff), "%hu",
+             parameters->origin_port);
+
+    getaddrinfo(parameters->origin_server, buff, &hints,
+                &s->origin_resolution);
+
+    selector_notify_block(key->s, key->fd);
+
+    free(data);
+
+    return 0;
+}
+
+static unsigned
+origin_resolv_done(struct selector_key *key) {
+    struct pop3 *s      =  ATTACHMENT(key);
+
+    if(s->origin_resolution == 0) {
+        // TODO: error
+    } else {
+        s->origin_domain   = s->origin_resolution->ai_family;
+        s->origin_addr_len = s->origin_resolution->ai_addrlen;
+        memcpy(&s->origin_addr,
+               s->origin_resolution->ai_addr,
+               s->origin_resolution->ai_addrlen);
+        freeaddrinfo(s->origin_resolution);
+        s->origin_resolution = 0;
+    }
+
+    selector_set_interest_key(key, OP_WRITE);
+
+    return connect_(key);
+}
+
 /** definición de handlers para cada estado */
 static const struct state_definition client_statbl[] = {
+        {
+                .state            = ORIGIN_RESOLV,
+                .on_write_ready   = origin_resolv,
+                .on_block_ready   = origin_resolv_done,
+        },
         {
                 .state            = CONNECTING,
                 .on_write_ready   = connect_,
@@ -732,9 +832,6 @@ pop3_done(struct selector_key *key) {
 int
 origin_connect(struct selector_key *key) {
 
-    char * origin_server = parameters->origin_server;
-    uint16_t origin_port = parameters->origin_port;
-
     int sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     ATTACHMENT(key)->origin_fd = sock;
 
@@ -749,27 +846,10 @@ origin_connect(struct selector_key *key) {
         goto error;
     }
 
-    /* Construct the server address structure */
-    struct sockaddr_in origin_addr;            /* Server address */
-    socklen_t origin_addr_len;
-
-    memset(&origin_addr, 0, sizeof(origin_addr)); /* Zero out structure */
-    origin_addr.sin_family = AF_INET;          /* IPv4 address family */
-    // Convert address
-    int rtnVal = inet_pton(AF_INET, origin_server, &origin_addr.sin_addr.s_addr);
-    if (rtnVal == 0) {
-        perror("inet_pton() failed - invalid address string");
-        goto error;
-    } else if (rtnVal < 0) {
-        perror("inet_pton() failed");
-        goto error;
-    }
-    origin_addr.sin_port = htons(origin_port);    /* Server port */
-
-    origin_addr_len = sizeof(origin_addr);
-
-    /* Establish the connection to the echo server */
-    if (connect(sock, (struct sockaddr *) &origin_addr, origin_addr_len) < 0) {
+    /* Establish the connection to the origin server */
+    if (-1 == connect(sock,
+                      (const struct sockaddr *)&ATTACHMENT(key)->origin_addr,
+                      ATTACHMENT(key)->origin_addr_len)) {
         if(errno == EINPROGRESS) {
             // es esperable,  tenemos que esperar a la conexión
 
@@ -780,13 +860,12 @@ origin_connect(struct selector_key *key) {
             }
 
             // esperamos la conexion en el nuevo socket
-            st = selector_register(key->s, sock, &pop3_handler, OP_READ, key->data);
+            st = selector_register(key->s, sock, &pop3_handler,
+                                   OP_READ, key->data);
             if(SELECTOR_SUCCESS != st) {
                 goto error;
             }
             ATTACHMENT(key)->references += 1;
-            memcpy(&ATTACHMENT(key)->origin_addr, &origin_addr, origin_addr_len);
-            ATTACHMENT(key)->origin_addr_len = origin_addr_len;
         } else {
             goto error;
         }
