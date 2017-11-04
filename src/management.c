@@ -8,6 +8,7 @@
 #include <netdb.h>
 #include <errno.h>
 #include <error.h>
+#include <ctype.h>
 
 #include "selector.h"
 #include "parameters.h"
@@ -125,11 +126,11 @@ management_close(struct selector_key *key){
 
 /* PARSER */
 
-void parse_hello(struct management * data);
+int parse_hello(struct management *data);
 
 struct parse_action{
     parse_status status;
-    void (* action)(struct management * data);
+    int (* action)(struct management * data);
 };
 
 static const struct parse_action hello_action = {
@@ -141,23 +142,85 @@ static const struct parse_action hello_action = {
 //        hello_action,
 //};
 
-int
-parse_commands(struct management *data){
+int parse_commands(struct management *data){
+    return parse_hello(data);
+}
+
+uint8_t clean_spaces(buffer *b);
+void send_error(struct management * data, const char * text);
+void send_ok(struct management * data, const char * text);
+
+int parse_hello(struct management *data){
+    uint8_t c;
     size_t count;
     uint8_t * ptr;
-    ptr = buffer_write_ptr(&data->buffer_read, &count);
-    ssize_t length = recv(data->client_fd, ptr, count, 0);
-    if (length > 0){
-        buffer_write_adv(&data->buffer_read, length);
-        ptr = buffer_read_ptr(&data->buffer_read, &count);
-        length = send(data->client_fd, ptr, count, MSG_NOSIGNAL);
-        buffer_read_adv(&data->buffer_read, length);
-    }else{
-        return -1;
+    bool reading_command = false;
+    bool command_read = false;
+    bool error = false;
+    char command[] = "PUTOELQUELEE";
+    int cmd_index = 0;
+
+    while(true){
+        if (!buffer_can_read(&data->buffer_read)){
+            ptr = buffer_write_ptr(&data->buffer_read, &count);
+            ssize_t length = recv(data->client_fd, ptr, count, 0);
+            if (length <= 0){
+                if (errno == EAGAIN || errno == EWOULDBLOCK){
+                    break;
+                }else{
+                    return -1;
+                }
+            }
+            buffer_write_adv(&data->buffer_read, length);
+        }
+
+        c = buffer_read(&data->buffer_read);
+        if (c == '\n'){
+            if (error)
+                send_error(data, "Invalid command.");
+            break;
+        }
+
+        if (!reading_command){
+            if (c == ' ')
+                continue;
+            else
+                reading_command = true;
+        }
+
+        if (reading_command && !command_read){
+            if (toupper(c) != command[cmd_index++]){
+                error = true;
+                continue;
+            }
+            if (cmd_index == strlen(command) ){
+                command_read = true;
+                continue;
+            }
+        }
+
+        if (command_read && c != ' '){
+            error = true;
+        }
+    }
+    if (!error){
+        send_ok(data, "HELLO!");
     }
     return 0;
 }
 
-void parse_hello(struct management * data){
+void send_error(struct management * data, const char * text){
+    char * msg = malloc(strlen("-ERR: ") + strlen(text) + 2);
+    strcpy(msg, "-ERR: ");
+    strcat(msg, text);
+    strcat(msg, "\n");
+    send(data->client_fd, msg, strlen(msg), 0);
+}
 
+void send_ok(struct management * data, const char * text){
+    char * msg = malloc(strlen("+OK: ") + strlen(text) + 2);
+    strcpy(msg, "+OK: ");
+    strcat(msg, text);
+    strcat(msg, "\n");
+    send(data->client_fd, msg, strlen(msg), 0);
 }
