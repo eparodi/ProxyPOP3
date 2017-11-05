@@ -364,7 +364,10 @@ int origin_connect(struct selector_key *key);
 unsigned
 connect_(struct selector_key *key) {
     //TODO validar conexion exitosa
-    origin_connect(key);
+    if (-1 == origin_connect(key)){
+        fprintf(stderr, "Connection to origin server failed\n");
+        return ERROR;
+    }
 
     log_connection(true, (const struct sockaddr *)&ATTACHMENT(key)->client_addr,
                 (const struct sockaddr *)&ATTACHMENT(key)->origin_addr);
@@ -785,8 +788,10 @@ origin_resolv_blocking(void *data) {
     snprintf(buff, sizeof(buff), "%hu",
              parameters->origin_port);
 
-    getaddrinfo(parameters->origin_server, buff, &hints,
-                &s->origin_resolution);
+    if (0 != getaddrinfo(parameters->origin_server, buff, &hints,
+                &s->origin_resolution)){
+        sprintf(stderr,"Domain name resolution error\n");
+    }
 
     selector_notify_block(key->s, key->fd);
 
@@ -931,7 +936,7 @@ pop3_done(struct selector_key *key) {
 int
 origin_connect(struct selector_key *key) {
 
-    int sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    int sock = socket(ATTACHMENT(key)->origin_domain, SOCK_STREAM, IPPROTO_TCP);
     ATTACHMENT(key)->origin_fd = sock;
 
     printf("server socket: %d\n", sock);
@@ -979,6 +984,7 @@ origin_connect(struct selector_key *key) {
     error:
         if (sock != -1) {
             close(sock);
+            ATTACHMENT(key)->origin_fd = -1;
         }
         return -1;
 }
