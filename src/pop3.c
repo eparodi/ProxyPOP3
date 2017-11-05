@@ -531,8 +531,10 @@ struct pop3_request * new_request(const struct pop3_request_cmd * cmd, char * ar
     return r;
 }
 
+//TODO
 void destroy_request(struct pop3_request *r) {
-
+    free(r->args);
+    free(r);
 }
 
 // procesa una request ya parseada
@@ -580,7 +582,7 @@ request_process(struct selector_key *key, struct request_st * d) {
         return ERROR;
     } else {
         enqueue(ATTACHMENT(key)->session.request_queue, r);
-        printf("queue size: %d\n", size(ATTACHMENT(key)->session.request_queue));
+        //printf("queue size: %d\n", size(ATTACHMENT(key)->session.request_queue));
     }
 
     // todavia hay bytes por leer en el buffer
@@ -613,7 +615,7 @@ request_write(struct selector_key *key) {
 
     // por ahora asumimos que el server no soporta pipelining entonces mandamos las requests de a una
     struct pop3_request *r = dequeue(ATTACHMENT(key)->session.request_queue);
-    printf("queue size: %d\n", size(ATTACHMENT(key)->session.request_queue));
+    //printf("queue size: %d\n", size(ATTACHMENT(key)->session.request_queue));
 
     // todo ver una mejor forma de hacer esto (peek)
     d->request = *r;
@@ -682,6 +684,10 @@ static unsigned
 response_process(struct selector_key *key, struct request_st * d) {
     enum pop3_state ret = RESPONSE_WRITE;
 
+    // llamamos a la funcion de ejcucion del comando
+    // TODO solo llamar cuando la respuesta fue +OK
+    d->request.cmd->fn(&d->request);
+
     if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_NOOP)) {
         if (SELECTOR_SUCCESS != selector_set_interest(key->s, ATTACHMENT(key)->client_fd, OP_WRITE)) {
             ret = ERROR;
@@ -712,6 +718,7 @@ response_write(struct selector_key *key) {
         buffer_read_adv(d->wb, n);
         if (!buffer_can_read(d->wb)) {
             // TODO hay que hacer peek en request write y recien desencolarla aca, tiene mas sentido
+
             if (d->request.cmd->id == quit) {
                 selector_set_interest_key(key, OP_NOOP);
                 ret = DONE;

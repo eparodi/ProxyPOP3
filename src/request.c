@@ -3,150 +3,92 @@
 #include <ctype.h>
 
 #include "request.h"
-#include "pop3_session.h"
 
 #define CMD_SIZE	(capa + 1)
 
-static struct pop3_request_cmd auth_commands[] = {
-        {
-                .id 	= user,
-                .name 	= "user",
-        },
-        {
-                .id 	= pass,
-                .name 	= "pass",
-        },
-        {
-                .id 	= apop,
-                .name 	= "apop",
-        },
-        {
-                .id 	= quit,
-                .name 	= "quit",
-        },
-        {
-                .id 	= capa,
-                .name 	= "capa",
-        },
-        /* marca de final */
-        {
-                .id 	= error,
-                .name	= NULL,
-        }
-};
+/** Ejecuta una transformacion externa luego de un retrieve */
+void retr_fn(struct pop3_request *r) {
 
-static struct pop3_request_cmd tran_commdands[] = {
-        {
-                .id 	= stat,
-                .name 	= "stat",
-        },
-        {
-                .id 	= list,
-                .name 	= "list",
-        },
-        {
-                .id 	= retr,
-                .name 	= "retr",
-        },
-        {
-                .id 	= dele,
-                .name 	= "dele",
-        },
-        {
-                .id 	= noop,
-                .name 	= "noop",
-        },
-        {
-                .id 	= rset,
-                .name 	= "rset",
-        },
-        {
-                .id 	= top,
-                .name 	= "top",
-        },
-        {
-                .id 	= uidl,
-                .name 	= "uidl",
-        },
-        {
-                .id 	= quit,
-                .name 	= "quit",
-        },
-        {
-                .id 	= capa,
-                .name 	= "capa",
-        },
-        /* marca de final */
-        {
-                .id 	= error,
-                .name	= NULL,
-        }
-};
+    printf("Ejecutar transformacion externa\n");
+}
 
-static struct pop3_request_cmd * all_commands[POP3_DONE] = {
-        auth_commands, tran_commdands, NULL,
-};
-
-///////////////////////////////////////////////////////
+/** Placeholder para comandos que no necesitan ejecutar nada */
+void common_fn(struct pop3_request *r) {
+    //printf("Nada por hacer\n");
+}
 
 const struct pop3_request_cmd commands[CMD_SIZE] = {
         {
                 .id 	= user,
                 .name 	= "user",
+                .fn     = common_fn,
         },
         {
                 .id 	= pass,
                 .name 	= "pass",
+                .fn     = common_fn,
         },
         {
                 .id 	= apop,
                 .name 	= "apop",
+                .fn     = common_fn,
         },
         {
                 .id 	= stat,
                 .name 	= "stat",
+                .fn     = common_fn,
         },
         {
                 .id 	= list,
                 .name 	= "list",
+                .fn     = common_fn,
         },
         {
                 .id 	= retr,
                 .name 	= "retr",
+                .fn     = retr_fn,
         },
         {
                 .id 	= dele,
                 .name 	= "dele",
+                .fn     = common_fn,
         },
         {
                 .id 	= noop,
                 .name 	= "noop",
+                .fn     = common_fn,
         },
         {
                 .id 	= rset,
                 .name 	= "rset",
+                .fn     = common_fn,
         },
         {
                 .id 	= top,
                 .name 	= "top",
+                .fn     = common_fn,
         },
         {
                 .id 	= uidl,
                 .name 	= "uidl",
+                .fn     = common_fn,
         },
         {
                 .id 	= quit,
                 .name 	= "quit",
+                .fn     = common_fn,
         },
         {
                 .id 	= capa,
                 .name 	= "capa",
+                .fn     = common_fn,
         },
 };
 
 const struct pop3_request_cmd invalid_cmd = {
-        .id = error,
-        .name = NULL,
+        .id     = error,
+        .name   = NULL,
+        .fn     = NULL,
 };
 
 
@@ -177,17 +119,4 @@ const struct pop3_request_cmd * parse_cmd(const char *cmd) {
     }
 
     return &invalid_cmd;
-}
-
-enum pop3_cmd_id parse_cmd_2(unsigned state, const char *cmd) {
-
-    struct pop3_request_cmd * commands = all_commands[state];
-
-    for (int i = 0; commands[i].name != NULL; i++) {
-        if (strcmpi(cmd, commands[i].name)) {
-            return commands[i].id;
-        }
-    }
-
-    return error;
 }
