@@ -121,8 +121,8 @@ request_marshall(struct pop3_request *r, buffer *b) {
 
     size_t i = strlen(cmd);
     size_t j = args == NULL ? 0 : strlen(args);
-    size_t count = i + j + (j == 0 ? 2 : 3);
-    //size_t count = i + j + (j == 0 ? 1 : 2);
+    //size_t count = i + j + (j == 0 ? 2 : 3);
+    size_t count = i + j + (j == 0 ? 1 : 2);
 
     buff = buffer_write_ptr(b, &n);
 
@@ -141,7 +141,7 @@ request_marshall(struct pop3_request *r, buffer *b) {
         buffer_write_adv(b, j);
     }
 
-    buffer_write(b, '\r');
+    //buffer_write(b, '\r');
     buffer_write(b, '\n');
 
     return (int)count;

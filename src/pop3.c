@@ -401,7 +401,7 @@ hello_read(struct selector_key *key) {
     ///////////////////////////////////////////////////////
     //Proxy welcome message
     ptr = buffer_write_ptr(d->wb, &count);
-    const char * msg = "Proxy server POP3 - POPG version 1.0\n";
+    const char * msg = "Proxy server POP3 - POPG version 1.0\r\n";
     n = strlen(msg);
     memccpy(ptr, msg, 0, count);
     buffer_write_adv(d->wb, n);
@@ -537,11 +537,14 @@ static unsigned
 request_process(struct selector_key *key, struct request_st * d) {
     enum pop3_state ret;
 
-    //TODO
+    //TODO hay que limpiar el buffer
     switch (d->parser.state) {
         case request_error:
         case request_error_cmd_too_long:
+            printf("cmd too long\n");
+            return ERROR;
         case request_error_param_too_long:
+            printf("param too long\n");
             return ERROR;
     }
 
@@ -608,6 +611,9 @@ request_write(struct selector_key *key) {
     // por ahora asumimos que el server no soporta pipelining entonces mandamos las requests de a una
     struct pop3_request *r = dequeue(ATTACHMENT(key)->session.request_queue);
     printf("queue size: %d\n", size(ATTACHMENT(key)->session.request_queue));
+
+    // todo ver una mejor forma de hacer esto (peek)
+    d->request = *r;
 
     if (-1 == request_marshall(r, b)) {
         ret = ERROR;
@@ -702,10 +708,12 @@ response_write(struct selector_key *key) {
     } else {
         buffer_read_adv(d->wb, n);
         if (!buffer_can_read(d->wb)) {
+            // TODO hay que hacer peek en request write y recien desencolarla aca, tiene mas sentido
             if (d->request.cmd->id == quit) {
                 selector_set_interest_key(key, OP_NOOP);
                 ret = DONE;
-            } else if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ)) {
+            } else
+            if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ)) {
                 ret = REQUEST_READ;
             } else {
                 ret = ERROR;
