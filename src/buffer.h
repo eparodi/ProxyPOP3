@@ -2,6 +2,7 @@
 #define BUFFER_H_VelRDAxzvnuFmwEaR0ftrkIinkT
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <unistd.h>  // size_t, ssize_t
 
 /**
@@ -99,43 +100,43 @@ struct buffer {
  * inicializa el buffer sin utilizar el heap
  */
 void
-buffer_init(buffer *b, const size_t n, uint8_t *data);
+buffer_init(buffer *buffer, const size_t n, uint8_t *data);
 
 /**
  * Retorna un puntero donde se pueden escribir hasta `*nbytes`.
  * Se debe notificar mediante la función `buffer_write_adv'
  */
 uint8_t *
-buffer_write_ptr(buffer *b, size_t *nbyte);
+buffer_write_ptr(buffer *buffer, size_t *nbyte);
 void
-buffer_write_adv(buffer *b, const ssize_t bytes);
+buffer_write_adv(buffer *buffer, const ssize_t bytes);
 
 uint8_t *
-buffer_read_ptr(buffer *b, size_t *nbyte);
+buffer_read_ptr(buffer *buffer, size_t *nbyte);
 void
-buffer_read_adv(buffer *b, const ssize_t bytes);
+buffer_read_adv(buffer *buffer, const ssize_t bytes);
 
 /**
  * obtiene un byte
  */
 uint8_t
-buffer_read(buffer *b);
+buffer_read(buffer *buffer);
 
 /** escribe un byte */
 void
-buffer_write(buffer *b, uint8_t c);
+buffer_write(buffer *buffer, uint8_t c);
 
 /**
  * compacta el buffer
  */
 void
-buffer_compact(buffer *b);
+buffer_compact(buffer *buffer);
 
 /**
  * Reinicia todos los punteros
  */
 void
-buffer_reset(buffer *b);
+buffer_reset(buffer *buffer);
 
 /** retorna true si hay bytes para leer del buffer */
 bool
