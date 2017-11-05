@@ -4,8 +4,8 @@
 struct options {
     uint16_t port;
     char * error_file;
-    char * listen_address;
-    char * management_address;
+    in_addr_t listen_address;
+    in_addr_t management_address;
     uint16_t management_port;
     char * replacement_msg;
     char * filtered_media_types;
