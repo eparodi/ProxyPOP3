@@ -4,19 +4,15 @@
 #include <malloc.h>
 #include <netinet/in.h>
 #include <stdlib.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <errno.h>
-#include <error.h>
-#include <ctype.h>
 
 #include "selector.h"
 #include "parameters.h"
 #include "utils.h"
 #include "management.h"
+#include "parse_helpers.h"
 
 #define ATTACHMENT(key) ( (struct management *)(key)->data)
-#define N(x) (sizeof(x)/sizeof(x[0]))
+#define N(x) (sizeof(x)/sizeof((x)[0]))
 
 options parameters;
 
@@ -47,6 +43,7 @@ management_new(const int client_fd){
     ret->client_fd     = client_fd;
     buffer_init(&ret->buffer_write, N(ret->raw_buffer_write),ret->raw_buffer_write);
     buffer_init(&ret->buffer_read , N(ret->raw_buffer_read) ,ret->raw_buffer_read);
+    ret->status = ST_HELO;
     return ret;
 }
 
@@ -126,101 +123,78 @@ management_close(struct selector_key *key){
 
 /* PARSER */
 
-int parse_hello(struct management *data);
+int parse_hello(struct management *data, char ** cmd);
+int parse_user(struct management *data, char ** cmd);
 
 struct parse_action{
     parse_status status;
-    int (* action)(struct management * data);
+    int (* action)(struct management * data, char ** cmd);
+    int args;
 };
 
-static const struct parse_action hello_action = {
+static struct parse_action hello_action = {
         .status      = ST_HELO,
         .action      = parse_hello,
+        .args        = 1,
 };
 
-//static const struct parse_action action_list[] = {
-//        hello_action,
-//};
+static struct parse_action user_action= {
+        .status      = ST_USER,
+        .action      = parse_user,
+        .args        = 2,
+};
+
+static struct parse_action * action_list[] = {
+        &hello_action,
+        &user_action,
+};
 
 int parse_commands(struct management *data){
-    return parse_hello(data);
+    char ** cmd;
+    struct parse_action * act = action_list[data->status];
+    int status = 0;
+    int st_err;
+    cmd = parse_cmd(&data->buffer_read, data, act->args, &st_err);
+    switch (st_err){
+        case PARSE_OK:
+            act->action(data, cmd);
+            free_cmd(cmd, act->args);
+            break;
+        case ERROR_WRONGARGS:
+            send_error(data, "wrong arguments.");
+            break;
+        case ERROR_MALLOC:
+            send_error(data, "server error. Try again later.");
+        case ERROR_DISCONNECT:
+            return -1;
+        default:
+            break;
+    }
+    return status;
 }
 
-uint8_t clean_spaces(buffer *b);
-void send_error(struct management * data, const char * text);
-void send_ok(struct management * data, const char * text);
-
-int parse_hello(struct management *data){
-    uint8_t c;
-    size_t count;
-    uint8_t * ptr;
-    bool reading_command = false;
-    bool command_read = false;
-    bool error = false;
-    char command[] = "PUTOELQUELEE";
-    int cmd_index = 0;
-
-    while(true){
-        if (!buffer_can_read(&data->buffer_read)){
-            ptr = buffer_write_ptr(&data->buffer_read, &count);
-            ssize_t length = recv(data->client_fd, ptr, count, 0);
-            if (length <= 0){
-                if (errno == EAGAIN || errno == EWOULDBLOCK){
-                    break;
-                }else{
-                    return -1;
-                }
-            }
-            buffer_write_adv(&data->buffer_read, length);
-        }
-
-        c = buffer_read(&data->buffer_read);
-        if (c == '\n'){
-            if (error)
-                send_error(data, "Invalid command.");
-            break;
-        }
-
-        if (!reading_command){
-            if (c == ' ')
-                continue;
-            else
-                reading_command = true;
-        }
-
-        if (reading_command && !command_read){
-            if (toupper(c) != command[cmd_index++]){
-                error = true;
-                continue;
-            }
-            if (cmd_index == strlen(command) ){
-                command_read = true;
-                continue;
-            }
-        }
-
-        if (command_read && c != ' '){
-            error = true;
-        }
-    }
-    if (!error){
-        send_ok(data, "HELLO!");
+int parse_hello(struct management *data, char ** cmd){
+    if (strcasecmp("HELO", cmd[0]) == 0){
+        send_ok(data, "hello!");
+        data->status = ST_USER;
+    }else{
+        send_error(data, "command not recognized.");
     }
     return 0;
 }
 
-void send_error(struct management * data, const char * text){
-    char * msg = malloc(strlen("-ERR: ") + strlen(text) + 2);
-    strcpy(msg, "-ERR: ");
-    strcat(msg, text);
-    strcat(msg, "\n");
-    send(data->client_fd, msg, strlen(msg), 0);
-}
-
-void send_ok(struct management * data, const char * text){
-    char * msg = malloc(strlen("+OK: ") + strlen(text) + 2);
-    strcpy(msg, "+OK: ");
-    strcat(msg, text);
-    strcat(msg, "\n");
-    send(data->client_fd, msg, strlen(msg), 0);
+int parse_user(struct management *data, char ** cmd){
+    if (strcasecmp("USER", cmd[0]) == 0){
+        char welcome[] = "Welcome ";
+        char * msg = malloc(strlen(welcome) + strlen(cmd[1]) + 2);
+        strcpy(msg, welcome);
+        strcat(msg, cmd[1]);
+        strcat(msg, "\0");
+        send_ok(data, msg);
+        free(msg);
+        data->status = ST_HELO;
+    }else{
+        send_error(data, "command not recognized.");
+    }
+    return 0;
 }

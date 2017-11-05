@@ -2,6 +2,7 @@
 #define TPE_PROTOS_MANAGEMENT_H
 
 #include <netinet/in.h>
+#include "selector.h"
 #include "buffer.h"
 
 #define BUFFER_SIZE 1024
