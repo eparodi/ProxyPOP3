@@ -10,12 +10,17 @@
 #include "parse_helpers.h"
 
 #define BLOCK 10
+#define POPG_ARGC_BLOCK 5 // Limit of arguments for POPG
 
-char ** parse_cmd(buffer * b, struct management * data, int args, int * st_err){
-    char ** cmd = malloc(args * sizeof(char *));
+/*
+ * If args = 0. Accept all commands.
+ */
+char ** parse_cmd(buffer * b, struct management * data, int * args, int * st_err){
+    int argc = POPG_ARGC_BLOCK;
+    char ** cmd = malloc(argc * sizeof(char *));
 
     size_t count;
-    uint8_t * ptr = buffer_write_ptr(&data->buffer_read, &count);;
+    uint8_t * ptr = buffer_write_ptr(&data->buffer_read, &count);
     ssize_t length;
     size_t current_arg = 0, current_size = 0, current_index = 0;
     struct sctp_sndrcvinfo sndrcvinfo;
@@ -45,38 +50,44 @@ char ** parse_cmd(buffer * b, struct management * data, int args, int * st_err){
             c = buffer_read(b);
             if (!copying){
                 if (!isspace(c)){
-                    if (current_arg < args){
-                        copying = true;
-                        cmd[current_arg] = malloc(BLOCK * sizeof(char));
-                        if (cmd[current_arg] == NULL){
+                    if (current_arg == argc) {
+                        argc += POPG_ARGC_BLOCK;
+                        void * tmp = realloc(cmd, argc * sizeof(char *));
+                        if (tmp == NULL){
                             free_cmd(cmd, (int) current_arg);
                             error = true;
                             buffer_reset(b);
                             *st_err = ERROR_MALLOC;
                         }
-                        current_size = BLOCK;
-                        current_index = 0;
-                        if (c != '\'')
-                            cmd[current_arg][current_index++] = c;
-                        else
-                            quote = true;
-                    }else{
-                        cmd = NULL;
+                        cmd = tmp;
+                    }
+                    copying = true;
+                    cmd[current_arg] = malloc(BLOCK * sizeof(char));
+                    if (cmd[current_arg] == NULL){
+                        free_cmd(cmd, (int) current_arg);
                         error = true;
                         buffer_reset(b);
-                        *st_err = ERROR_WRONGARGS;
+                        *st_err = ERROR_MALLOC;
                     }
+                    current_size = BLOCK;
+                    current_index = 0;
+                    (*args)++;
+                    if (c != '\'')
+                        cmd[current_arg][current_index++] = c;
+                    else
+                        quote = true;
                 }
             }else{
                 if ((isspace(c) && !quote) || (c == '\'' && quote)){
                     if (current_index == current_size){
-                        cmd[current_arg] = realloc(cmd[current_arg], current_size+1);
-                        if (cmd[current_arg] == NULL){
+                        void * tmp = realloc(cmd[current_arg], current_size+1);
+                        if (tmp == NULL){
                             free_cmd(cmd, (int) current_arg);
                             error = true;
                             buffer_reset(b);
                             *st_err = ERROR_MALLOC;
                         }
+                        cmd[current_arg] = tmp;
                     }
                     cmd[current_arg][current_index] = '\0';
                     copying = false;
@@ -85,12 +96,13 @@ char ** parse_cmd(buffer * b, struct management * data, int args, int * st_err){
                 }else{
                     if(current_index == current_size) {
                         current_size += BLOCK;
-                        cmd[current_arg] = realloc(cmd[current_arg], current_size);
-                        if (cmd[current_arg] == NULL){
+                        void * tmp = realloc(cmd[current_arg], current_size);
+                        if (tmp == NULL){
                             free_cmd(cmd, (int) current_arg);
                             error = true;
                             *st_err = ERROR_MALLOC;
                         }
+                        cmd[current_arg] = tmp;
                     }
                     cmd[current_arg][current_index++] = c;
                 }
@@ -109,11 +121,6 @@ char ** parse_cmd(buffer * b, struct management * data, int args, int * st_err){
                     }
                 }
                 cmd[current_arg][current_index] = '\0';
-            }
-            if (args != current_arg){
-                *st_err = ERROR_WRONGARGS;
-                free_cmd(cmd, (int) current_arg);
-                return NULL;
             }
             if (error)
                 return NULL;

@@ -15,7 +15,7 @@ typedef enum parse_status {
     ST_HELO = 0,
     ST_USER = 1,
     ST_PASS = 2,
-    ST_ACTION = 3,
+    ST_CONFIG = 3,
     ST_QUIT = 4,
     ST_ERROR = 5,
 } parse_status;
@@ -29,6 +29,7 @@ struct management{
     uint8_t                       raw_buffer_write[BUFFER_SIZE], raw_buffer_read[BUFFER_SIZE];
 
     parse_status                  status;
+    int                           argc;
 };
 
 void management_accept_connection(struct selector_key *key);

@@ -11,7 +11,7 @@ struct options {
     char * filtered_media_types;
     char * origin_server;
     uint16_t origin_port;
-    char *filter_command;
+    char * filter_command;
 
 };
 

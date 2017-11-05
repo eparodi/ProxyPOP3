@@ -11,7 +11,7 @@ enum helper_errors{
 };
 
 // char ** parse_text(buffer * b, char ** cmd, int args, int * args_found, bool * cmd_found);
-char ** parse_cmd(buffer * b, struct management * data, int args, int * st_err);
+char ** parse_cmd(buffer * b, struct management * data, int * args, int * st_err);
 
 void free_cmd(char ** cmd, int args);
 
