@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 
 /*
  * Usage: ./a.out "echo hola"
@@ -27,21 +28,34 @@ int
 main2(int argc, char * argv[]){
 
   char ** args = create_arguments(argc, argv);
+  int fd[2], nbytes;
+  char readbuffer[80];
+  pipe(fd);
+
   int pid = fork();
+
   if (pid == -1){
     perror("fork error");
   }else if(pid == 0){
+    dup2(fd[1], 1);
     int value = execve("/bin/bash", args, NULL);
     perror("execve");
     if (value == -1){
       printf("Soy un error\n");
     }
+    nbytes = read(fd[0], readbuffer, sizeof(readbuffer));
+    readbuffer[nbytes-1] = '\0';
+    printf("%s",readbuffer);
   } else {
-    int ret_value;
-    alarm(10);
-    waitpid(pid, &ret_value, 0);
-    printf("RET VALUE=%d\n",ret_value);
+    nbytes = read(fd[0], readbuffer, sizeof(readbuffer));
+    readbuffer[nbytes-1] = '\0';
+    printf("Received string: %s\n", readbuffer);
+    printf("Received bytes: %d\n", nbytes);
+    nbytes = write(fd[1], "Hola", sizeof("Hola"));
+    nbytes = read(fd[0], readbuffer, sizeof(readbuffer));
+    readbuffer[nbytes-1] = '\0';
+    printf("Received string: %s\n", readbuffer);
+    printf("Received bytes: %d\n", nbytes);
   }
 
 }
-

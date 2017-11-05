@@ -98,11 +98,12 @@ void management_accept_connection(struct selector_key *key) {
 
 void
 management_read(struct selector_key *key){
-    selector_set_interest(key->s, key->fd, OP_WRITE);
+    selector_set_interest(key->s, key->fd, OP_NOOP);
     struct management *data = ATTACHMENT(key);
     if (parse_commands(data) < 0){
         selector_unregister_fd(key->s, data->client_fd);
     };
+    selector_set_interest(key->s, key->fd, OP_WRITE);
 }
 
 void
