@@ -15,7 +15,7 @@
 /*
  * If args = 0. Accept all commands.
  */
-char ** parse_cmd(buffer * b, struct management * data, int * args, int * st_err){
+char ** sctp_parse_cmd(buffer *b, struct management *data, int *args, int *st_err){
     int argc = POPG_ARGC_BLOCK;
     char ** cmd = malloc(argc * sizeof(char *));
 

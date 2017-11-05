@@ -172,8 +172,8 @@ int parse_commands(struct management *data){
     int status = 0;
     int st_err;
     data->argc = 0;
-    cmd = parse_cmd(&data->buffer_read, data, &data->argc, &st_err);
-    if (act->args != 0 && act->args != data->argc)
+    cmd = sctp_parse_cmd(&data->buffer_read, data, &data->argc, &st_err);
+    if (st_err != ERROR_DISCONNECT && act->args != 0 && act->args != data->argc)
         st_err = ERROR_WRONGARGS;
     switch (st_err){
         case PARSE_OK:
