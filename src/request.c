@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <zconf.h>
+#include <unistd.h>
 
 #include "request.h"
 #include "parameters.h"

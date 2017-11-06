@@ -2,6 +2,7 @@
 #define TPE_PROTOS_PARAMETERS_C_H
 
 #include <stdint.h>
+#include <netinet/in.h>
 
 struct options {
     uint16_t port;
