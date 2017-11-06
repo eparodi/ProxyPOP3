@@ -39,7 +39,7 @@ options parse_options(int argc, char **argv) {
     parameters->replacement_msg = "Parte reemplazada.";
     parameters->filtered_media_types = "text/plain,image/*";
     parameters->origin_port = 110;
-    parameters->filter_command = NULL;
+    parameters->filter_command = "echo hola"; //TODO: pasarlo a Null
 
     int index = 0;
     int c;

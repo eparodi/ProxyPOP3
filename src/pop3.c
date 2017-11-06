@@ -20,6 +20,7 @@
 #include "pop3.h"
 #include "parameters.h"
 #include "utils.h"
+#include "response_parser.h"
 
 #define N(x) (sizeof(x)/sizeof((x)[0]))
 
@@ -105,9 +106,10 @@ struct request_st {
     /** buffer utilizado para I/O */
     buffer                     *rb, *wb;
 
-    /** parser */
+    /** parsers */
     struct pop3_request         request;
-    struct request_parser       parser;
+    struct request_parser       request_parser;
+    struct response_parser      response_parser;
 };
 
 
@@ -476,8 +478,12 @@ request_init(const unsigned state, struct selector_key *key) {
 
     d->rb              = &(ATTACHMENT(key)->read_buffer);
     d->wb              = &(ATTACHMENT(key)->write_buffer);
-    d->parser.request  = &d->request;
-    //request_parser_init(&d->parser);
+    d->request_parser.request  = &d->request;
+    request_parser_init(&d->request_parser);
+
+    d->response_parser.request = &d->request;
+    response_parser_init(&d->response_parser);
+
 }
 
 /** Lee la request del cliente */
@@ -498,8 +504,8 @@ request_read(struct selector_key *key) {
     if(n > 0) {
         buffer_write_adv(b, n);
         while(ret == REQUEST_READ) {
-            request_parser_init(&d->parser);
-            enum request_state st = request_consume(b, &d->parser, &error);
+            request_parser_init(&d->request_parser);
+            enum request_state st = request_consume(b, &d->request_parser, &error);
             if (request_is_done(st, 0)) {
                 ret = request_process(key, d);
             }
@@ -543,7 +549,7 @@ request_process(struct selector_key *key, struct request_st * d) {
     enum pop3_state ret;
 
     //TODO hay que limpiar el buffer
-    switch (d->parser.state) {
+    switch (d->request_parser.state) {
         case request_error:
         case request_error_cmd_too_long:
             printf("cmd too long\n");
@@ -562,7 +568,7 @@ request_process(struct selector_key *key, struct request_st * d) {
         case error:
             //no la mandamos, le mandamos un mensaje de error al cliente y volvemos a leer de client_fd
             ptr = (char *)buffer_write_ptr(b, &count);
-            sprintf(ptr, "BAD REQUEST: %s\n", d->parser.cmd_buffer);
+            sprintf(ptr, "-ERR Unknown command. '%s' (POPG)\n", d->request_parser.cmd_buffer);
             n = strlen(ptr);
             buffer_write_adv(b, n);
             set_interests(key->s, key->fd, ATTACHMENT(key)->origin_fd, RESPONSE_WRITE);
@@ -647,13 +653,15 @@ request_write(struct selector_key *key) {
 }
 
 static void
-request_close_(const unsigned state, struct selector_key *key) {
+request_close(const unsigned state, struct selector_key *key) {
     struct request_st * d = &ATTACHMENT(key)->client.request;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // RESPONSE
 ////////////////////////////////////////////////////////////////////////////////
+
+void log_response(const struct pop3_response *r);
 
 static unsigned response_process(struct selector_key *key, struct request_st * d);
 
@@ -663,16 +671,22 @@ response_read(struct selector_key *key) {
     struct request_st *d = &ATTACHMENT(key)->client.request;
     unsigned  ret      = RESPONSE_READ;
     bool  error        = false;
+
+    buffer  *b         = d->wb;
     uint8_t *ptr;
     size_t  count;
     ssize_t  n;
 
-    ptr = buffer_write_ptr(d->wb, &count);
+    ptr = buffer_write_ptr(b, &count);
     n = recv(key->fd, ptr, count, 0);
 
     if(n > 0) {
-        buffer_write_adv(d->wb, n);
-        ret = response_process(key, &ATTACHMENT(key)->client.request);
+        buffer_write_adv(b, n);
+        //response_parser_init(&d->response_parser);
+        enum response_state st = response_consume(b, &d->response_parser, &error);
+        if (response_is_done(st, 0)) {
+            ret = response_process(key, &ATTACHMENT(key)->client.request);
+        }
     } else {
         ret = ERROR;
     }
@@ -686,7 +700,7 @@ response_process(struct selector_key *key, struct request_st * d) {
 
     // llamamos a la funcion de ejcucion del comando
     // TODO solo llamar cuando la respuesta fue +OK
-    d->request.cmd->fn(&d->request);
+    d->request.cmd->fn(&d->request, ATTACHMENT(key)->client_fd, ATTACHMENT(key)->origin_fd);
 
     if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_NOOP)) {
         if (SELECTOR_SUCCESS != selector_set_interest(key->s, ATTACHMENT(key)->client_fd, OP_WRITE)) {
@@ -717,6 +731,7 @@ response_write(struct selector_key *key) {
     } else {
         buffer_read_adv(d->wb, n);
         if (!buffer_can_read(d->wb)) {
+            log_response(d->request.response);
             // TODO hay que hacer peek en request write y recien desencolarla aca, tiene mas sentido
 
             if (d->request.cmd->id == quit) {
@@ -856,7 +871,7 @@ static const struct state_definition client_statbl[] = {
         },{
                 .state            = REQUEST_WRITE,
                 .on_write_ready   = request_write,
-                .on_departure     = request_close_,
+                .on_departure     = request_close,
         },{
                 .state            = RESPONSE_READ,
                 .on_read_ready    = response_read,
@@ -1019,9 +1034,9 @@ log_connection(bool opened, const struct sockaddr* clientaddr,
 
 void log_request(struct pop3_request *r) {
     const struct pop3_request_cmd *cmd = r->cmd;
-    fprintf(stdout, "request: %s %s\n", cmd->name, ((r->args == NULL) ? "" : r->args));
+    fprintf(stdout, "request:  %s %s\n", cmd->name, ((r->args == NULL) ? "" : r->args));
 }
 
-void log_response() {
-
+void log_response(const struct pop3_response *r) {
+    fprintf(stdout, "response: %s\n", r->name);
 }

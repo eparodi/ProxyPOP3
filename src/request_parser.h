@@ -63,7 +63,7 @@ bool
 request_is_done(enum request_state st, bool *errored);
 
 void
-request_close(struct request_parser *p);
+request_parser_close(struct request_parser *p);
 
 /**
  * serializa la request en buff

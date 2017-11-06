@@ -20,7 +20,7 @@ enum pop3_cmd_id {
 };
 
 /** Puntero a funcion usado cuando se ejecutan los comandos */
-typedef void (*command_fn)(struct pop3_request *r);
+typedef void (*command_fn)(struct pop3_request *r, int client_fd, int origin_fd);
 
 struct pop3_request_cmd {
     const enum pop3_cmd_id 	id;
@@ -32,12 +32,12 @@ struct pop3_request {
     const struct pop3_request_cmd   *cmd;
     char                            *args;
 
-    enum pop3_response_status       status;
+    const struct pop3_response      *response;
 };
 
 
 /** Traduce un string a struct cmd */
-const struct pop3_request_cmd * parse_cmd(const char *cmd);
+const struct pop3_request_cmd * get_cmd(const char *cmd);
 
 // TODO el estado lo obtendria de la sesion pop3
 //enum pop3_cmd_id parse_cmd_2(unsigned state, const char *cmd);

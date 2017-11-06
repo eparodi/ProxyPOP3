@@ -1,6 +1,8 @@
 #ifndef TPE_PROTOS_PARAMETERS_C_H
 #define TPE_PROTOS_PARAMETERS_C_H
 
+#include <stdint.h>
+
 struct options {
     uint16_t port;
     char * error_file;

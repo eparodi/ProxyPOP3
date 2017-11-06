@@ -14,7 +14,7 @@ cmd(const uint8_t c, struct request_parser* p) {
     struct pop3_request *r = p->request;
 
     if (c == ' ' || c == '\n') {
-        r->cmd = parse_cmd(p->cmd_buffer);
+        r->cmd = get_cmd(p->cmd_buffer);
         if (c == ' ') {
             ret = request_param;
         } else {
