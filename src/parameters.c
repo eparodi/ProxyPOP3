@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <ctype.h>
+#include <arpa/inet.h>
+#include <memory.h>
 
 #include "parameters.h"
 
@@ -33,7 +35,7 @@ options parse_options(int argc, char **argv) {
     parameters = malloc(sizeof(*parameters));
     parameters->port = 1110;
     parameters->error_file = "/dev/null";
-    parameters->management_address = "127.0.0.1";
+    parameters->management_address = inet_addr("127.0.0.1");
     parameters->management_port = 9090;
     parameters->listen_address = INADDR_ANY;
     parameters->replacement_msg = "Parte reemplazada.";
@@ -45,11 +47,11 @@ options parse_options(int argc, char **argv) {
     int c;
 
     opterr = 0;
+    int messages = 0;
 
     /* e: option e requires argument e:: optional argument */
     while ((c = getopt (argc, argv, "e:hl:L:m:M:o:p:P:t:v")) != -1){
-        switch (c)
-        {
+        switch (c) {
             /* Error file */
             case 'e':
                 parameters->error_file = optarg;
@@ -61,15 +63,34 @@ options parse_options(int argc, char **argv) {
                 break;
                 /* Listen address */
             case 'l':
-                parameters->listen_address = optarg;
+                parameters->listen_address = inet_addr(optarg);
+
+                if (parameters->listen_address == INADDR_NONE) {
+                    fprintf(stderr, "Invalid listen address\n");
+                    exit(1);
+                }
+
                 break;
                 /* Management listen address */
             case 'L':
-                parameters->management_address = optarg;
+                parameters->management_address = inet_addr(optarg);
+
+                if (parameters->management_address == INADDR_NONE) {
+                    fprintf(stderr, "Invalid management address\n");
+                    exit(1);
+                }
+
                 break;
                 /* Replacement message */
             case 'm':
-                parameters->replacement_msg = optarg;
+                messages++;
+                if (messages == 1){
+                    parameters->replacement_msg = optarg;
+                }else{
+                    strcat(parameters->replacement_msg, "\n");
+                    strcat(parameters->replacement_msg, optarg);
+                }
+
                 break;
             case 'M':
                 parameters->filtered_media_types = optarg;
@@ -86,6 +107,7 @@ options parse_options(int argc, char **argv) {
             case 'P':
                 parameters->origin_port = (uint16_t) atoi(optarg);
                 break;
+                /* filter command */
             case 't': {
                 parameters->filter_command = optarg;
             }
@@ -95,8 +117,9 @@ options parse_options(int argc, char **argv) {
                 exit(0);
                 break;
             case '?':
-                /* TODO: add every option */
-                if (optopt == 'e' || optopt == 'l' || optopt == 'L')
+                if (optopt == 'e' || optopt == 'l' || optopt == 'L'
+                    || optopt == 'm' || optopt == 'M' || optopt == 'o'
+                    || optopt == 'p' || optopt == 'P' || optopt == 'v')
                     fprintf (stderr, "Option -%c requires an argument.\n",
                              optopt);
                 else if (isprint (optopt))

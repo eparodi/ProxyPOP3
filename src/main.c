@@ -51,13 +51,13 @@ int main (int argc, char ** argv) {
 
     //type of socket created
     address_proxy.sin_family      = AF_INET;
-    address_proxy.sin_addr.s_addr = INADDR_ANY;
+    address_proxy.sin_addr.s_addr = parameters->listen_address;
     address_proxy.sin_port        = htons(opt->port);
 
     struct sockaddr_in address_management;
 
     address_management.sin_family      = AF_INET;
-    address_management.sin_addr.s_addr = INADDR_ANY;
+    address_management.sin_addr.s_addr = parameters->management_address;
     address_management.sin_port        = htons(opt->management_port);
 
     int master_tcp_socket = create_master_socket(IPPROTO_TCP, &address_proxy);
