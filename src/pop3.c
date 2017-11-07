@@ -86,6 +86,16 @@ enum pop3_state {
      */
             RESPONSE_WRITE,
 
+    /**
+     * Lee un mail del orgin server
+     */
+            MAIL_READ,
+
+    /**
+     * Le envia un mail al cliente
+     */
+            MAIL_WRITE,
+
     // estados terminales
             DONE,
     ERROR,
@@ -139,6 +149,7 @@ struct pop3 {
     int                           origin_fd;
 
 
+    // TODO remove queue
     struct pop3_session            session;
 
 
@@ -337,9 +348,11 @@ selector_status set_interests(fd_selector s, int client_fd, int origin_fd, enum 
         case REQUEST_WRITE:
             origin_interest = OP_WRITE;
             break;
+        case MAIL_READ:
         case RESPONSE_READ:
             origin_interest = OP_READ;
             break;
+        case MAIL_WRITE:
         case RESPONSE_WRITE:
             client_interest = OP_WRITE;
             break;
@@ -351,6 +364,102 @@ selector_status set_interests(fd_selector s, int client_fd, int origin_fd, enum 
     status |= selector_set_interest(s, origin_fd, origin_interest);
 
     return status;
+}
+
+//TODO mergear con CONNECTING
+////////////////////////////////////////////////////////////////////////////////
+// ORIGIN_RESOLV
+////////////////////////////////////////////////////////////////////////////////
+
+static void * origin_resolv_blocking(void *data);
+
+unsigned
+origin_resolv(struct selector_key *key){
+
+    pthread_t tid;
+    struct selector_key* k = malloc(sizeof(*key));
+
+    if(k == NULL) {
+        //ret       = REQUEST_WRITE;
+        //d->status = status_general_SOCKS_server_failure;
+        //selector_set_interest_key(key, OP_WRITE);
+    } else {
+        memcpy(k, key, sizeof(*k));
+        if(-1 == pthread_create(&tid, 0,
+                                origin_resolv_blocking, k)) {
+            //ret       = REQUEST_WRITE;
+            //d->status = status_general_SOCKS_server_failure;
+            //selector_set_interest_key(key, OP_WRITE);
+        } else{
+            //ret = REQUEST_RESOLV;
+            selector_set_interest_key(key, OP_NOOP);
+        }
+    }
+
+
+    return ORIGIN_RESOLV;
+}
+
+/**
+ * Realiza la resolución de DNS bloqueante.
+ *
+ * Una vez resuelto notifica al selector para que el evento esté
+ * disponible en la próxima iteración.
+ */
+static void *
+origin_resolv_blocking(void *data) {
+    struct selector_key *key = (struct selector_key *) data;
+    struct pop3       *s   = ATTACHMENT(key);
+
+    pthread_detach(pthread_self());
+    s->origin_resolution = 0;
+    struct addrinfo hints = {
+            .ai_family    = AF_UNSPEC,    /* Allow IPv4 or IPv6 */
+            .ai_socktype  = SOCK_STREAM,  /* Datagram socket */
+            .ai_flags     = AI_PASSIVE,   /* For wildcard IP address */
+            .ai_protocol  = 0,            /* Any protocol */
+            .ai_canonname = NULL,
+            .ai_addr      = NULL,
+            .ai_next      = NULL,
+    };
+
+    char buff[7];
+    snprintf(buff, sizeof(buff), "%hu",
+             parameters->origin_port);
+
+    if (0 != getaddrinfo(parameters->origin_server, buff, &hints,
+                         &s->origin_resolution)){
+        sprintf(stderr,"Domain name resolution error\n");
+    }
+
+    selector_notify_block(key->s, key->fd);
+
+    free(data);
+
+    return 0;
+}
+
+static unsigned
+origin_resolv_done(struct selector_key *key) {
+    struct pop3 *s      =  ATTACHMENT(key);
+
+    if(s->origin_resolution == 0) {
+        // TODO: error
+    } else {
+        s->origin_domain   = s->origin_resolution->ai_family;
+        s->origin_addr_len = s->origin_resolution->ai_addrlen;
+        memcpy(&s->origin_addr,
+               s->origin_resolution->ai_addr,
+               s->origin_resolution->ai_addrlen);
+        freeaddrinfo(s->origin_resolution);
+        s->origin_resolution = 0;
+    }
+
+    if (SELECTOR_SUCCESS != selector_set_interest_key(key, OP_WRITE)) {
+        return ERROR;
+    }
+
+    return CONNECTING;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -590,6 +699,7 @@ request_process(struct selector_key *key, struct request_st * d) {
     switch (d->request.cmd->id) {
         case error:
             printf("no deberia estar aca\n");
+            break;
         case retr:
         case user:
         case pass:
@@ -659,7 +769,14 @@ request_write(struct selector_key *key) {
         if(!buffer_can_read(b)) {
             // el client_fd ya esta en NOOP (seteado en request_read)
             if(SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ)) {
-                ret = RESPONSE_READ;
+                switch (d->request.cmd->id) {
+                    case retr:
+                        ret = MAIL_READ;
+                        break;
+                    default:
+                        ret = RESPONSE_READ;
+                        break;
+                }
             } else {
                 ret = ERROR;
             }
@@ -771,95 +888,46 @@ response_close(const unsigned state, struct selector_key *key) {
     struct request_st * d = &ATTACHMENT(key)->client.request;
 }
 
-static void * origin_resolv_blocking(void *data);
+////////////////////////////////////////////////////////////////////////////////
+// MAIL
+////////////////////////////////////////////////////////////////////////////////
 
-unsigned
-origin_resolv(struct selector_key *key){
+static unsigned mail_process(struct selector_key *key);
 
-    pthread_t tid;
-    struct selector_key* k = malloc(sizeof(*key));
+/** Inicializa las variables de los estados MAIL_READ y MAIL_WRITE */
+static void
+mail_init(const unsigned state, struct selector_key *key) {
+   //abrir pipes
+    printf("mail init\n");
 
-    if(k == NULL) {
-        //ret       = REQUEST_WRITE;
-        //d->status = status_general_SOCKS_server_failure;
-        //selector_set_interest_key(key, OP_WRITE);
-    } else {
-        memcpy(k, key, sizeof(*k));
-        if(-1 == pthread_create(&tid, 0,
-                                origin_resolv_blocking, k)) {
-            //ret       = REQUEST_WRITE;
-            //d->status = status_general_SOCKS_server_failure;
-            //selector_set_interest_key(key, OP_WRITE);
-        } else{
-            //ret = REQUEST_RESOLV;
-            selector_set_interest_key(key, OP_NOOP);
-        }
-    }
-
-
-    return ORIGIN_RESOLV;
 }
 
-/**
- * Realiza la resolución de DNS bloqueante.
- *
- * Una vez resuelto notifica al selector para que el evento esté
- * disponible en la próxima iteración.
- */
-static void *
-origin_resolv_blocking(void *data) {
-    struct selector_key *key = (struct selector_key *) data;
-    struct pop3       *s   = ATTACHMENT(key);
+// leer del server
+static unsigned
+mail_read(struct selector_key *key) {
+    printf("mail read\n");
 
-    pthread_detach(pthread_self());
-    s->origin_resolution = 0;
-    struct addrinfo hints = {
-            .ai_family    = AF_UNSPEC,    /* Allow IPv4 or IPv6 */
-            .ai_socktype  = SOCK_STREAM,  /* Datagram socket */
-            .ai_flags     = AI_PASSIVE,   /* For wildcard IP address */
-            .ai_protocol  = 0,            /* Any protocol */
-            .ai_canonname = NULL,
-            .ai_addr      = NULL,
-            .ai_next      = NULL,
-    };
-
-    char buff[7];
-    snprintf(buff, sizeof(buff), "%hu",
-             parameters->origin_port);
-
-    if (0 != getaddrinfo(parameters->origin_server, buff, &hints,
-                &s->origin_resolution)){
-        sprintf(stderr,"Domain name resolution error\n");
-    }
-
-    selector_notify_block(key->s, key->fd);
-
-    free(data);
-
-    return 0;
+    return mail_process(key);
 }
 
 static unsigned
-origin_resolv_done(struct selector_key *key) {
-    struct pop3 *s      =  ATTACHMENT(key);
-
-    if(s->origin_resolution == 0) {
-        // TODO: error
-    } else {
-        s->origin_domain   = s->origin_resolution->ai_family;
-        s->origin_addr_len = s->origin_resolution->ai_addrlen;
-        memcpy(&s->origin_addr,
-               s->origin_resolution->ai_addr,
-               s->origin_resolution->ai_addrlen);
-        freeaddrinfo(s->origin_resolution);
-        s->origin_resolution = 0;
+mail_process(struct selector_key *key) {
+    if (SELECTOR_SUCCESS == set_interests(key->s, ATTACHMENT(key)->client_fd, key->fd, MAIL_WRITE)) {
+        return MAIL_WRITE;
     }
+    return ERROR;
+}
 
-    if (SELECTOR_SUCCESS != selector_set_interest_key(key, OP_WRITE)) {
-        return ERROR;
-    }
+//escribir en el cliente
+static unsigned
+mail_write(struct selector_key *key) {
+    printf("mail write\n");
+    return DONE;
+}
 
-    return CONNECTING;
+static void
+mail_close(const unsigned state, struct selector_key *key) {
+    //cerrar pipes
 }
 
 /** definición de handlers para cada estado */
@@ -896,6 +964,14 @@ static const struct state_definition client_statbl[] = {
                 .state            = RESPONSE_WRITE,
                 .on_write_ready   = response_write,
                 .on_departure     = response_close,
+        },{
+                .state            = MAIL_READ,
+                .on_read_ready    = mail_read,
+                .on_arrival       = mail_init,
+        },{
+                .state            = MAIL_WRITE,
+                .on_write_ready   = mail_write,
+                .on_departure     = mail_close,
         },{
                 .state            = DONE,
 
