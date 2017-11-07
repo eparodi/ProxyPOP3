@@ -15,12 +15,15 @@ cmd(const uint8_t c, struct request_parser* p) {
 
     if (c == ' ' || c == '\n') {
         r->cmd = get_cmd(p->cmd_buffer);
-        if (c == ' ') {
+        if (r->cmd->id == error) {
+            ret = request_error;
+        } else if (c == ' ') {
             ret = request_param;
         } else {
             ret = request_done;
         }
     } else if (p->i >= CMD_SIZE) {
+        r->cmd = get_cmd(""); // seteo cmd en error
         ret = request_error_cmd_too_long;
     } else {
         p->cmd_buffer[p->i++] = c;

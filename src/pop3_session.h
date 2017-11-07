@@ -11,6 +11,7 @@ enum pop3_session_state {
     POP3_DONE,
 };
 
+//TODO agregar intentos de comandos invalidos (3 como dovecot)
 // representa una sesion pop3
 struct pop3_session {
     char *user;

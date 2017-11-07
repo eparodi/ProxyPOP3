@@ -520,7 +520,7 @@ request_read(struct selector_key *key) {
         ret = ERROR;
     }
 
-    return error ? ERROR : ret;
+    return ret;
 }
 
 // crea una request para ser encolada en la queue
@@ -548,31 +548,48 @@ static unsigned
 request_process(struct selector_key *key, struct request_st * d) {
     enum pop3_state ret;
 
-    //TODO hay que limpiar el buffer
-    switch (d->request_parser.state) {
-        case request_error:
-        case request_error_cmd_too_long:
-            printf("cmd too long\n");
-            return ERROR;
-        case request_error_param_too_long:
-            printf("param too long\n");
-            return ERROR;
-    }
-
     buffer *b = d->wb;
     char *ptr;
     size_t  count;
     ssize_t  n;
 
+    if (d->request_parser.state >= request_error) {
+        // limpiamos el buffer
+        while(buffer_can_read(d->rb)) {
+            buffer_read(d->rb);
+        }
+
+        ptr = (char *)buffer_write_ptr(b, &count);
+
+        //no la mandamos, le mandamos un mensaje de error al cliente y volvemos a leer de client_fd
+        switch (d->request_parser.state) {
+            case request_error:
+                printf("Unknown command\n");
+                sprintf(ptr, "-ERR Unknown command. '%s' (POPG)\n", d->request_parser.cmd_buffer);
+                n = strlen(ptr);
+                buffer_write_adv(b, n);
+                break;
+            case request_error_cmd_too_long:
+                printf("cmd too long\n");
+                sprintf(ptr, "-ERR Command too long\n");
+                n = strlen(ptr);
+                buffer_write_adv(b, n);
+                break;
+            case request_error_param_too_long:
+                printf("param too long\n");
+                sprintf(ptr, "-ERR Parameter too long\n");
+                n = strlen(ptr);
+                buffer_write_adv(b, n);
+                break;
+        }
+
+        set_interests(key->s, key->fd, ATTACHMENT(key)->origin_fd, RESPONSE_WRITE);
+        return RESPONSE_WRITE;
+    }
+
     switch (d->request.cmd->id) {
         case error:
-            //no la mandamos, le mandamos un mensaje de error al cliente y volvemos a leer de client_fd
-            ptr = (char *)buffer_write_ptr(b, &count);
-            sprintf(ptr, "-ERR Unknown command. '%s' (POPG)\n", d->request_parser.cmd_buffer);
-            n = strlen(ptr);
-            buffer_write_adv(b, n);
-            set_interests(key->s, key->fd, ATTACHMENT(key)->origin_fd, RESPONSE_WRITE);
-            return RESPONSE_WRITE;
+            printf("no deberia estar aca\n");
         case retr:
         case user:
         case pass:
@@ -1038,5 +1055,5 @@ void log_request(struct pop3_request *r) {
 }
 
 void log_response(const struct pop3_response *r) {
-    fprintf(stdout, "response: %s\n", r->name);
+    fprintf(stdout, "response: %s\n", r == NULL ? "" : r->name);
 }
