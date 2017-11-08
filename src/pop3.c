@@ -21,6 +21,7 @@
 #include "parameters.h"
 #include "utils.h"
 #include "response_parser.h"
+#include "media_types.h"
 
 #define N(x) (sizeof(x)/sizeof((x)[0]))
 
@@ -148,6 +149,8 @@ struct pop3 {
     int                           origin_domain;
     int                           origin_fd;
 
+    int                           extern_read_fd;
+    int                           extern_write_fd;
 
     // TODO remove queue
     struct pop3_session            session;
@@ -1132,4 +1135,74 @@ void log_request(struct pop3_request *r) {
 
 void log_response(const struct pop3_response *r) {
     fprintf(stdout, "response: %s\n", r == NULL ? "" : r->name);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// EXTERNAL TRANSFORMATIONS
+////////////////////////////////////////////////////////////////////////////////
+
+char *concat_string(char *variable, char *value) {
+
+    char * ret =  malloc((strlen(variable) + strlen(value)+1)*sizeof(char));
+    strcat(ret, variable);
+    strcat(ret, value);
+
+    return ret;
+}
+
+int
+open_external_transformations(struct selector_key * key, struct pop3_session * session){
+
+    // TODO: change filter_medias.
+    char *filter_medias         = concat_string("FILTER_MEDIAS=",
+                                                get_types_list(parameters->filtered_media_types, ','));
+    char *filter_msg            = concat_string("FILTER_MSG=",
+                                                parameters->replacement_msg);
+    char *pop3_filter_version   = concat_string("POP3_FILTER_VERSION=",
+                                                parameters->version);
+    char *pop3_username         = concat_string("POP3_USERNAME=", session->user);
+    char *pop3_server           = concat_string("POP3_SERVER=", parameters->origin_server);
+
+    pid_t pid;
+    char * args[4];
+    args[0] = "bash";
+    args[1] = "-c";
+    args[2] = parameters->filter_command;
+    args[3] = NULL;
+    char *const environment[6]  = {filter_medias, filter_msg,
+                                   pop3_filter_version,
+                                   pop3_username, pop3_server, NULL};
+
+    int fd[2];
+    pipe(fd);
+
+    if ((pid = fork()) == -1)
+        perror("fork error");
+    else if (pid == 0) {
+        dup2(fd[0], 0);
+        dup2(fd[1], 1);
+        int value = execve("/bin/bash", args, NULL);
+        perror("execve");
+        if (value == -1){
+            fprintf(stderr, "Error\n");
+        }
+    }else{
+        struct pop3 * data = ATTACHMENT(key);
+        if (selector_register(key->s, fd[0], NULL, OP_NOOP, data) == 0){
+            data->extern_write_fd;
+        }else{
+            close(fd[0]);
+            close(fd[1]);
+            return -1;
+        } // write to.
+        if (selector_register(key->s, fd[1], NULL, OP_NOOP, data) == 0){
+            data->extern_read_fd;
+        }else{
+            selector_unregister_fd(key->s, fd[0]);
+            close(fd[0]);
+            close(fd[1]);
+            return -1;
+        } // read from.
+        return 0;
+    }
 }

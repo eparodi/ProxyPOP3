@@ -11,11 +11,11 @@ struct options {
     in_addr_t management_address;
     uint16_t management_port;
     char * replacement_msg;
-    char * filtered_media_types;
+    struct media_types * filtered_media_types;
     char * origin_server;
     uint16_t origin_port;
     char * filter_command;
-
+    char * version;
 };
 
 typedef struct options * options;

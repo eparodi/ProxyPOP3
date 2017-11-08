@@ -153,4 +153,5 @@ void send_ok(struct management * data, const char * text){
     strcat(msg, text);
     strcat(msg, "\n");
     send(data->client_fd, msg, strlen(msg), 0);
+    free(msg);
 }

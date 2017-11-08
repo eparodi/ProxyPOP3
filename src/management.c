@@ -10,6 +10,7 @@
 #include "utils.h"
 #include "management.h"
 #include "parse_helpers.h"
+#include "media_types.h"
 
 #define ATTACHMENT(key) ( (struct management *)(key)->data)
 #define N(x) (sizeof(x)/sizeof((x)[0]))
@@ -98,17 +99,15 @@ void management_accept_connection(struct selector_key *key) {
 
 void
 management_read(struct selector_key *key){
-    selector_set_interest(key->s, key->fd, OP_NOOP);
     struct management *data = ATTACHMENT(key);
     if (parse_commands(data) < 0){
         selector_unregister_fd(key->s, data->client_fd);
     };
-    selector_set_interest(key->s, key->fd, OP_WRITE);
 }
 
 void
 management_write(struct selector_key *key){
-    selector_set_interest(key->s, key->fd, OP_READ);
+
 }
 
 void
@@ -129,6 +128,7 @@ int parse_hello(struct management *data, char ** cmd);
 int parse_user(struct management *data, char ** cmd);
 int parse_pass(struct management *data, char ** cmd);
 int parse_config(struct management *data, char ** cmd);
+int goodbye(struct management * data);
 
 struct parse_action{
     parse_status status;
@@ -176,6 +176,9 @@ int parse_commands(struct management *data){
     cmd = sctp_parse_cmd(&data->buffer_read, data, &data->argc, &st_err);
     if (st_err != ERROR_DISCONNECT && act->args != 0 && act->args != data->argc)
         st_err = ERROR_WRONGARGS;
+    if (strcasecmp("QUIT", cmd[0]) == 0 & data->argc == 1){
+        return goodbye(data);
+    }
     switch (st_err){
         case PARSE_OK:
             status = act->action(data, cmd);
@@ -206,13 +209,7 @@ int parse_hello(struct management *data, char ** cmd){
 
 int parse_user(struct management *data, char ** cmd){
     if (strcasecmp("USER", cmd[0]) == 0){
-        char welcome[] = "Welcome ";
-        char * msg = malloc(strlen(welcome) + strlen(cmd[1]) + 2);
-        strcpy(msg, welcome);
-        strcat(msg, cmd[1]);
-        strcat(msg, "\0");
-        send_ok(data, msg);
-        free(msg);
+        send_ok(data, "Welcome");
         data->status = ST_PASS;
     }else{
         send_error(data, "command not recognized.");
@@ -236,24 +233,82 @@ int parse_pass(struct management *data, char ** cmd){
 }
 
 int parse_config(struct management *data, char ** cmd){
-    if (strcasecmp("QUIT", cmd[0]) == 0){
-        if(data->argc != 1)
-            goto fail;
-        send_ok(data, "Goodbye.");
-        close(data->client_fd);
-        return -1;
-    }else if(strcasecmp("CMD", cmd[0]) == 0){
+    if(strcasecmp("CMD", cmd[0]) == 0){
         if (data->argc != 2)
             goto fail;
         char * str = malloc(sizeof(char) * strlen(cmd[1]));
         strcpy(str, cmd[1]);
+        if (str == NULL)
+            goto fail;
         if (parameters->filter_command != NULL)
             free(parameters->filter_command);
         parameters->filter_command = str;
-        send_ok(data, "Done.");
+        goto success;
+    }else if(strcasecmp("MSG", cmd[0]) == 0){
+        if (data->argc != 2)
+            goto fail;
+        char * str = malloc(sizeof(char) * strlen(cmd[1]));
+        if (str == NULL)
+            goto fail_mem;
+        strcpy(str, cmd[1]);
+        parameters->replacement_msg = cmd[1];
+        goto success;
+    }else if(strcasecmp("LIST", cmd[0]) == 0){
+        if (data->argc != 1)
+            goto fail;
+        char * msg = get_types_list(parameters->filtered_media_types, '\n');
+        send_ok(data, msg);
+        free(msg);
+        return 0;
+    }else if(strcasecmp("BAN", cmd[0]) == 0){
+        if (data->argc != 2)
+            goto fail;
+        char * str = malloc(sizeof(char) * strlen(cmd[1]));
+        if (str == NULL)
+            goto fail_mem;
+        strcpy(str, cmd[1]);
+        char * type, * subtype;
+        if (is_mime(str, &type, &subtype) < 0)
+            goto fail_type;
+        char * s = malloc(sizeof(char) * strlen(subtype));
+        if (s == NULL)
+            goto fail_mem;
+        strcpy(s, subtype);
+        if (add_media_type(parameters->filtered_media_types, type, s) < 0){
+            send_error(data, "could not ban type");
+        }else{
+            send_ok(data, "type banned");
+        }
+        return 0;
+    }else if(strcasecmp("UNBAN", cmd[0]) == 0){
+        if (data->argc != 2)
+            goto fail;
+        char * type, * subtype;
+        if (is_mime(cmd[1], &type, &subtype) < 0)
+            goto fail_type;
+        if (delete_media_type(parameters->filtered_media_types, type, subtype) < 0){
+            send_error(data, "could not unban type");
+        }else{
+            send_ok(data, "type unbanned");
+        }
         return 0;
     }
     fail:
     send_error(data, "command not recognized.");
     return 0;
+    fail_mem:
+    send_error(data, "server error.");
+    return 0;
+    fail_type:
+    send_error(data, "wrong media type.");
+    return 0;
+    success:
+    send_ok(data, "Done.");
+    return 0;
+}
+
+int goodbye(struct management * data){
+    send_ok(data, "Goodbye.");
+    close(data->client_fd);
+    return -1;
 }

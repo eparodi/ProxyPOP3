@@ -7,6 +7,7 @@
 #include <memory.h>
 
 #include "parameters.h"
+#include "media_types.h"
 
 // Global variable with the parameters
 options parameters;
@@ -39,9 +40,22 @@ options parse_options(int argc, char **argv) {
     parameters->management_port = 9090;
     parameters->listen_address = INADDR_ANY;
     parameters->replacement_msg = "Parte reemplazada.";
-    parameters->filtered_media_types = "text/plain,image/*";
     parameters->origin_port = 110;
     parameters->filter_command = "echo hola"; //TODO: pasarlo a Null
+    parameters->version = "0.0";
+
+    char * type = malloc(10*sizeof(char));
+    char * subtype = malloc(10*sizeof(char));
+    struct media_types * mt = new_media_types();
+    strcpy(type, "text");
+    strcpy(subtype, "plain");
+    add_media_type(mt, type, subtype);
+    type = malloc(10*sizeof(char));
+    subtype = malloc(10*sizeof(char));
+    strcpy(type, "image");
+    strcpy(subtype, "*");
+    add_media_type(mt, type, subtype);
+    parameters->filtered_media_types = mt;
 
     int index = 0;
     int c;
