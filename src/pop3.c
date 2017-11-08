@@ -25,7 +25,6 @@
 
 #define N(x) (sizeof(x)/sizeof((x)[0]))
 
-//TODO PIPELINING
 /** maquina de estados general */
 enum pop3_state {
     /**
@@ -152,7 +151,6 @@ struct pop3 {
     int                           extern_read_fd;
     int                           extern_write_fd;
 
-    // TODO remove queue
     struct pop3_session            session;
 
 
@@ -477,7 +475,6 @@ int origin_connect(struct selector_key *key);
 /** intenta establecer una conexión con el origin server */
 unsigned
 connect_(struct selector_key *key) {
-    //TODO validar conexion exitosa
     if (-1 == origin_connect(key)){
         fprintf(stderr, "Connection to origin server failed\n");
         return ERROR;
@@ -613,21 +610,13 @@ request_read(struct selector_key *key) {
     ptr = buffer_write_ptr(b, &count);
     n = recv(key->fd, ptr, count, 0);
 
-    if(n > 0) {
+    if(n > 0 || buffer_can_read(b)) {
         buffer_write_adv(b, n);
-        while(ret == REQUEST_READ) {
-            request_parser_init(&d->request_parser);
-            enum request_state st = request_consume(b, &d->request_parser, &error);
-            if (request_is_done(st, 0)) {
-                ret = request_process(key, d);
-            }
+        request_parser_init(&d->request_parser);
+        enum request_state st = request_consume(b, &d->request_parser, &error);
+        if (request_is_done(st, 0)) {
+            ret = request_process(key, d);
         }
-    } else if (!is_empty(ATTACHMENT(key)->session.request_queue)) { // si hay alguna request encolada la mando
-        selector_status s = SELECTOR_SUCCESS;
-        s |= selector_set_interest_key(key, OP_NOOP);
-        s |= selector_set_interest(key->s, ATTACHMENT(key)->origin_fd, OP_WRITE);
-
-        ret = SELECTOR_SUCCESS == s ? REQUEST_WRITE : ERROR;
     } else {
         ret = ERROR;
     }
@@ -635,69 +624,46 @@ request_read(struct selector_key *key) {
     return ret;
 }
 
-// crea una request para ser encolada en la queue
-struct pop3_request * new_request(const struct pop3_request_cmd * cmd, char * args) {
-    struct pop3_request *r = malloc(0);
-
-    if (r == NULL) {
-        return NULL;
-    }
-
-    r->cmd = cmd;
-    r->args = args; // args ya fue alocado en el parser. se podria alocar aca tambien
-
-    return r;
-}
-
-//TODO
-void destroy_request(struct pop3_request *r) {
-    free(r->args);
-    free(r);
-}
+#define MAX_CONCURRENT_INVALID_COMMANDS 3
 
 // procesa una request ya parseada
 static unsigned
 request_process(struct selector_key *key, struct request_st * d) {
-    enum pop3_state ret;
-
-    buffer *b = d->wb;
-    char *ptr;
-    size_t  count;
-    ssize_t  n;
+    enum pop3_state ret = REQUEST_WRITE;
 
     if (d->request_parser.state >= request_error) {
-        // limpiamos el buffer
-        while(buffer_can_read(d->rb)) {
-            buffer_read(d->rb);
-        }
-
-        ptr = (char *)buffer_write_ptr(b, &count);
+        char * msg = NULL;
 
         //no la mandamos, le mandamos un mensaje de error al cliente y volvemos a leer de client_fd
         switch (d->request_parser.state) {
             case request_error:
-                printf("Unknown command\n");
-                sprintf(ptr, "-ERR Unknown command. '%s' (POPG)\n", d->request_parser.cmd_buffer);
-                n = strlen(ptr);
-                buffer_write_adv(b, n);
+                msg = "-ERR Unknown command. (POPG)\r\n";
                 break;
             case request_error_cmd_too_long:
-                printf("cmd too long\n");
-                sprintf(ptr, "-ERR Command too long\n");
-                n = strlen(ptr);
-                buffer_write_adv(b, n);
+                msg = "-ERR Command too long.\r\n";
                 break;
             case request_error_param_too_long:
-                printf("param too long\n");
-                sprintf(ptr, "-ERR Parameter too long\n");
-                n = strlen(ptr);
-                buffer_write_adv(b, n);
+                msg = "-ERR Parameter too long.\r\n";
+                break;
+            default:
                 break;
         }
 
-        set_interests(key->s, key->fd, ATTACHMENT(key)->origin_fd, RESPONSE_WRITE);
-        return RESPONSE_WRITE;
+        send(key->fd, msg, strlen(msg), 0);
+
+        ATTACHMENT(key)->session.concurrent_invalid_commands++;
+        int cic = ATTACHMENT(key)->session.concurrent_invalid_commands;
+        if (cic >= MAX_CONCURRENT_INVALID_COMMANDS) {
+            msg = "-ERR Too many invalid commands. (POPG)\n";
+            send(key->fd, msg, strlen(msg), 0);
+            return DONE;
+        }
+
+        set_interests(key->s, key->fd, ATTACHMENT(key)->origin_fd, REQUEST_READ);
+        return REQUEST_READ;
     }
+
+    ATTACHMENT(key)->session.concurrent_invalid_commands = 0;
 
     switch (d->request.cmd->id) {
         case error:
@@ -711,29 +677,16 @@ request_process(struct selector_key *key, struct request_st * d) {
             break;
     }
 
-    // encolamos la request
-    struct pop3_request *r = new_request(d->request.cmd, d->request.args);
-
-    if (r == NULL) {
-        return ERROR;
-    } else {
-        enqueue(ATTACHMENT(key)->session.request_queue, r);
-        //printf("queue size: %d\n", size(ATTACHMENT(key)->session.request_queue));
-    }
-
-    // todavia hay bytes por leer en el buffer
-    if (buffer_can_read(d->rb)) {
-        ret = REQUEST_READ;
-    } else {
-        ret = REQUEST_WRITE;
-    }
-
     if (ret == REQUEST_WRITE) {
         selector_status s = SELECTOR_SUCCESS;
         s |= selector_set_interest_key(key, OP_NOOP);
         s |= selector_set_interest(key->s, ATTACHMENT(key)->origin_fd, OP_WRITE);
 
         ret = SELECTOR_SUCCESS == s ? REQUEST_WRITE : ERROR;
+    }
+
+    if (-1 == request_marshall(&d->request, d->wb)) {
+        ret = ERROR;
     }
 
     return ret;
@@ -744,21 +697,13 @@ request_write(struct selector_key *key) {
     struct request_st *d = &ATTACHMENT(key)->client.request;
 
     unsigned  ret      = REQUEST_WRITE;
-    buffer *b          = d->rb;
+    buffer *b          = d->wb;
     uint8_t *ptr;
     size_t  count;
     ssize_t  n;
 
     // por ahora asumimos que el server no soporta pipelining entonces mandamos las requests de a una
-    struct pop3_request *r = dequeue(ATTACHMENT(key)->session.request_queue);
-    //printf("queue size: %d\n", size(ATTACHMENT(key)->session.request_queue));
-
-    // todo ver una mejor forma de hacer esto (peek)
-    d->request = *r;
-
-    if (-1 == request_marshall(r, b)) {
-        ret = ERROR;
-    }
+    struct pop3_request *r = &d->request;
 
     ptr = buffer_read_ptr(b, &count);
     n = send(key->fd, ptr, count, MSG_NOSIGNAL);
@@ -768,18 +713,10 @@ request_write(struct selector_key *key) {
     } else {
         buffer_read_adv(b, n);
         log_request(r);
-        destroy_request(r);
         if(!buffer_can_read(b)) {
             // el client_fd ya esta en NOOP (seteado en request_read)
             if(SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ)) {
-                switch (d->request.cmd->id) {
-                    case retr:
-                        ret = MAIL_READ;
-                        break;
-                    default:
-                        ret = RESPONSE_READ;
-                        break;
-                }
+                ret = RESPONSE_READ;
             } else {
                 ret = ERROR;
             }
@@ -824,6 +761,7 @@ response_read(struct selector_key *key) {
         if (response_is_done(st, 0)) {
             ret = response_process(key, &ATTACHMENT(key)->client.request);
         }
+        log_response(d->request.response);
     } else {
         ret = ERROR;
     }
@@ -868,9 +806,6 @@ response_write(struct selector_key *key) {
     } else {
         buffer_read_adv(d->wb, n);
         if (!buffer_can_read(d->wb)) {
-            log_response(d->request.response);
-            // TODO hay que hacer peek en request write y recien desencolarla aca, tiene mas sentido
-
             if (d->request.cmd->id == quit) {
                 selector_set_interest_key(key, OP_NOOP);
                 ret = DONE;

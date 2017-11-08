@@ -97,15 +97,23 @@ request_is_done(const enum request_state st, bool *errored) {
 extern enum request_state
 request_consume(buffer *b, struct request_parser *p, bool *errored) {
     enum request_state st = p->state;
-
+    uint8_t c = 0;
 
     while(buffer_can_read(b)) {
-        const uint8_t c = buffer_read(b);
+        c = buffer_read(b);
         st = request_parser_feed(p, c);
         if(request_is_done(st, errored)) {
             break;
         }
     }
+
+    //limpio el buffer luego de un comando invalido
+    if (st >= request_error && c != '\n') {
+        while(buffer_can_read(b) && c != '\n') {
+            c = buffer_read(b);
+        }
+    }
+
     return st;
 }
 
@@ -124,8 +132,8 @@ request_marshall(struct pop3_request *r, buffer *b) {
 
     size_t i = strlen(cmd);
     size_t j = args == NULL ? 0 : strlen(args);
-    //size_t count = i + j + (j == 0 ? 2 : 3);
-    size_t count = i + j + (j == 0 ? 1 : 2);
+    size_t count = i + j + (j == 0 ? 2 : 3);
+    //size_t count = i + j + (j == 0 ? 1 : 2);
 
     buff = buffer_write_ptr(b, &n);
 
@@ -144,7 +152,7 @@ request_marshall(struct pop3_request *r, buffer *b) {
         buffer_write_adv(b, j);
     }
 
-    //buffer_write(b, '\r');
+    buffer_write(b, '\r');
     buffer_write(b, '\n');
 
     return (int)count;
