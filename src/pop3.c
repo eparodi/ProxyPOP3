@@ -515,7 +515,7 @@ hello_read(struct selector_key *key) {
     ///////////////////////////////////////////////////////
     //Proxy welcome message
     ptr = buffer_write_ptr(d->wb, &count);
-    const char * msg = "Proxy server POP3 - POPG version 1.0\r\n";
+    const char * msg = "+OK Proxy server POP3 ready.\r\n";
     n = strlen(msg);
     memccpy(ptr, msg, 0, count);
     buffer_write_adv(d->wb, n);
@@ -525,7 +525,7 @@ hello_read(struct selector_key *key) {
     n = recv(key->fd, ptr, count, 0);
 
     if(n > 0) {
-        buffer_write_adv(d->wb, n);
+        buffer_write_adv(d->wb, 0);
         if (SELECTOR_SUCCESS != set_interests(key->s, ATTACHMENT(key)->client_fd, key->fd, HELLO_WRITE)) {
             ret = ERROR;
         }
