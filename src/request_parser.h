@@ -12,6 +12,7 @@
 enum request_state {
     request_cmd,
     request_param,
+    request_newline,
 
     // apartir de aca están done
     request_done,

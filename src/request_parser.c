@@ -13,12 +13,14 @@ cmd(const uint8_t c, struct request_parser* p) {
     enum request_state ret = request_cmd;
     struct pop3_request *r = p->request;
 
-    if (c == ' ' || c == '\n') {
+    if (c == ' ' || c == '\r' || c == '\n') {   // aceptamos comandos terminados en '\r\n' y '\n'
         r->cmd = get_cmd(p->cmd_buffer);
         if (r->cmd->id == error) {
             ret = request_error;
         } else if (c == ' ') {
             ret = request_param;
+        } else if (c == '\r'){
+            ret = request_newline;
         } else {
             ret = request_done;
         }
@@ -37,11 +39,15 @@ param(const uint8_t c, struct request_parser* p) {
     enum request_state ret = request_param;
     struct pop3_request *r = p->request;
 
-    if (c == '\n') {
-        // la alocacion se podria hacer antes de crear la nueva request, pero es lo mismo
+    if (c == '\r' || c == '\n') {
         r->args = malloc(strlen(p->param_buffer));
         strcpy(r->args, p->param_buffer);
-        ret = request_done;
+        if (c == '\r') {
+            ret = request_newline;
+        } else {
+            ret = request_done;
+        }
+
     } else {
         p->param_buffer[p->j++] = c;
         if (p->j >= PARAM_SIZE) {
@@ -50,6 +56,16 @@ param(const uint8_t c, struct request_parser* p) {
     }
 
     return ret;
+}
+
+static enum request_state
+newline(const uint8_t c, struct request_parser* p) {
+
+    if (c != '\n') {
+        return request_error;
+    }
+
+    return request_done;
 }
 
 extern void
@@ -71,6 +87,9 @@ request_parser_feed (struct request_parser* p, const uint8_t c) {
             break;
         case request_param:
             next = param(c, p);
+            break;
+        case request_newline:
+            next = newline(c, p);
             break;
         case request_done:
         case request_error:
@@ -133,7 +152,6 @@ request_marshall(struct pop3_request *r, buffer *b) {
     size_t i = strlen(cmd);
     size_t j = args == NULL ? 0 : strlen(args);
     size_t count = i + j + (j == 0 ? 2 : 3);
-    //size_t count = i + j + (j == 0 ? 1 : 2);
 
     buff = buffer_write_ptr(b, &n);
 
@@ -144,9 +162,9 @@ request_marshall(struct pop3_request *r, buffer *b) {
     memcpy(buff, cmd, i);
     buffer_write_adv(b, i);
 
-    buffer_write(b, ' ');
 
     if (args != NULL) {
+        buffer_write(b, ' ');
         buff = buffer_write_ptr(b, &n);
         memcpy(buff, args, j);
         buffer_write_adv(b, j);

@@ -612,7 +612,6 @@ request_read(struct selector_key *key) {
 
     if(n > 0 || buffer_can_read(b)) {
         buffer_write_adv(b, n);
-        request_parser_init(&d->request_parser);
         enum request_state st = request_consume(b, &d->request_parser, &error);
         if (request_is_done(st, 0)) {
             ret = request_process(key, d);
@@ -659,6 +658,8 @@ request_process(struct selector_key *key, struct request_st * d) {
             return DONE;
         }
 
+        //reseteamos el parser
+        request_parser_init(&d->request_parser);
         set_interests(key->s, key->fd, ATTACHMENT(key)->origin_fd, REQUEST_READ);
         return REQUEST_READ;
     }
@@ -822,6 +823,9 @@ response_write_process(struct selector_key *key, struct request_st * d) {
             return DONE;
         case user:
             ATTACHMENT(key)->session.user = d->request.args;
+            break;
+        case capa:
+
             break;
         default:
             break;
