@@ -1,7 +1,7 @@
 #ifndef TPE_PROTOS_MEDIA_TYPES_H
 #define TPE_PROTOS_MEDIA_TYPES_H
 
-#include <zconf.h>
+#include <unistd.h>
 #include <stdbool.h>
 
 typedef struct subtype_node{

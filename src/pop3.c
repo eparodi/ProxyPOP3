@@ -13,13 +13,13 @@
 #include <pthread.h>
 
 #include "pop3_session.h"
-#include "request_parser.h"
 #include "buffer.h"
-
 #include "stm.h"
+
 #include "pop3.h"
 #include "parameters.h"
 #include "utils.h"
+#include "request_parser.h"
 #include "response_parser.h"
 #include "media_types.h"
 
@@ -430,7 +430,7 @@ origin_resolv_blocking(void *data) {
 
     if (0 != getaddrinfo(parameters->origin_server, buff, &hints,
                          &s->origin_resolution)){
-        sprintf(stderr,"Domain name resolution error\n");
+        fprintf(stderr,"Domain name resolution error\n");
     }
 
     selector_notify_block(key->s, key->fd);
@@ -503,7 +503,7 @@ hello_init(const unsigned state, struct selector_key *key) {
     d->wb = &(ATTACHMENT(key)->write_buffer);
 }
 
-/** lee todos los bytes del mensaje de tipo `hello' en server_fd */
+/** lee todos los bytes del mensaje de tipo `hello' de server_fd */
 static unsigned
 hello_read(struct selector_key *key) {
     struct hello_st *d = &ATTACHMENT(key)->orig.hello;
@@ -665,17 +665,17 @@ request_process(struct selector_key *key, struct request_st * d) {
 
     ATTACHMENT(key)->session.concurrent_invalid_commands = 0;
 
-    switch (d->request.cmd->id) {
-        case error:
-            printf("no deberia estar aca\n");
-            break;
-        case retr:
-        case user:
-        case pass:
-        case quit:
-        default:
-            break;
-    }
+//    switch (d->request.cmd->id) {
+//        case error:
+//            printf("no deberia estar aca\n");
+//            break;
+//        case retr:
+//        case user:
+//        case pass:
+//        case quit:
+//        default:
+//            break;
+//    }
 
     if (ret == REQUEST_WRITE) {
         selector_status s = SELECTOR_SUCCESS;
@@ -729,6 +729,7 @@ request_write(struct selector_key *key) {
 static void
 request_close(const unsigned state, struct selector_key *key) {
     struct request_st * d = &ATTACHMENT(key)->client.request;
+    //request_parser_close(&d->request_parser); //UNDEFINED??????
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -738,6 +739,8 @@ request_close(const unsigned state, struct selector_key *key) {
 void log_response(const struct pop3_response *r);
 
 static unsigned response_process(struct selector_key *key, struct request_st * d);
+
+enum pop3_state response_write_process(struct selector_key *key, struct request_st * d);
 
 /** Lee la respuesta del origin server*/
 static unsigned
@@ -773,10 +776,6 @@ static unsigned
 response_process(struct selector_key *key, struct request_st * d) {
     enum pop3_state ret = RESPONSE_WRITE;
 
-    // llamamos a la funcion de ejcucion del comando
-    // TODO solo llamar cuando la respuesta fue +OK
-    d->request.cmd->fn(&d->request, ATTACHMENT(key)->client_fd, ATTACHMENT(key)->origin_fd);
-
     if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_NOOP)) {
         if (SELECTOR_SUCCESS != selector_set_interest(key->s, ATTACHMENT(key)->client_fd, OP_WRITE)) {
             ret = ERROR;
@@ -793,7 +792,7 @@ static unsigned
 response_write(struct selector_key *key) {
     struct request_st *d = &ATTACHMENT(key)->client.request;
 
-    enum pop3_state  ret      = RESPONSE_WRITE;
+    enum pop3_state  ret = RESPONSE_WRITE;
     uint8_t *ptr;
     size_t  count;
     ssize_t  n;
@@ -806,16 +805,32 @@ response_write(struct selector_key *key) {
     } else {
         buffer_read_adv(d->wb, n);
         if (!buffer_can_read(d->wb)) {
-            if (d->request.cmd->id == quit) {
-                selector_set_interest_key(key, OP_NOOP);
-                ret = DONE;
-            } else
-            if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ)) {
-                ret = REQUEST_READ;
-            } else {
-                ret = ERROR;
-            }
+            ret = response_write_process(key, d);
         }
+    }
+
+    return ret;
+}
+
+enum pop3_state
+response_write_process(struct selector_key *key, struct request_st * d) {
+    enum pop3_state ret;
+
+    switch (d->request.cmd->id) {
+        case quit:
+            selector_set_interest_key(key, OP_NOOP);
+            return DONE;
+        case user:
+            ATTACHMENT(key)->session.user = d->request.args;
+            break;
+        default:
+            break;
+    }
+
+    if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ)) {
+        ret = REQUEST_READ;
+    } else {
+        ret = ERROR;
     }
 
     return ret;
@@ -1085,8 +1100,9 @@ char *concat_string(char *variable, char *value) {
     return ret;
 }
 
+// TODO solo llamar cuando la respuesta fue +OK
 int
-open_external_transformations(struct selector_key * key, struct pop3_session * session){
+open_external_transformation(struct selector_key * key, struct pop3_session * session){
 
     // TODO: change filter_medias.
     char *filter_medias         = concat_string("FILTER_MEDIAS=",

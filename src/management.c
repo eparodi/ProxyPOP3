@@ -223,7 +223,7 @@ int parse_pass(struct management *data, char ** cmd){
             send_ok(data, "Logged in.");
             data->status = ST_CONFIG;
         }else{
-            send_error(data, "Authentification failed. Try again.");
+            send_error(data, "Authentication failed. Try again.");
             data->status = ST_USER;
         }
     }else{

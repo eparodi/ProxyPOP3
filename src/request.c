@@ -1,127 +1,69 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <unistd.h>
 
 #include "request.h"
-#include "parameters.h"
 
 #define CMD_SIZE	(capa + 1)
-
-/** Ejecuta una transformacion externa luego de un retrieve */
-void retr_fn(struct pop3_request *r, int client_fd, int origin_fd) {
-
-    char * args[4];
-    args[0] = "bash";
-    args[1] = "-c";
-    args[2] = parameters->filter_command;
-    args[3] = NULL;
-
-    int fd[2];
-    size_t  nbytes;
-    char readbuffer[2048];
-    pipe(fd);
-
-    int pid = fork();
-
-    if (pid == -1){
-        perror("fork error");
-    }else if(pid == 0){
-        dup2(fd[0], 0);
-        dup2(fd[1], 1);
-        int value = execve("/bin/bash", args, NULL);
-        perror("execve");
-        if (value == -1){
-            fprintf(stderr, "Error\n");
-        }
-    } else {
-        // dup2(fd[0], client_fd)
-        // fd[0] leer la respuesta
-        // fd[1] mandar el mail del server
-        // nbytes = (size_t) read(fd[0], readbuffer, sizeof(readbuffer));
-        // readbuffer[nbytes-1] = '\0';
-        // write(client_fd, readbuffer, nbytes);
-        // printf("%s\n",readbuffer);
-    }
-}
-
-/** Placeholder para comandos que no necesitan ejecutar nada */
-void common_fn(struct pop3_request *r, int client_fd, int origin_fd) {
-    //printf("Nada por hacer\n");
-}
 
 const struct pop3_request_cmd commands[CMD_SIZE] = {
         {
                 .id 	= user,
                 .name 	= "user",
-                .fn     = common_fn,
         },
         {
                 .id 	= pass,
                 .name 	= "pass",
-                .fn     = common_fn,
         },
         {
                 .id 	= apop,
                 .name 	= "apop",
-                .fn     = common_fn,
         },
         {
                 .id 	= stat,
                 .name 	= "stat",
-                .fn     = common_fn,
         },
         {
                 .id 	= list,
                 .name 	= "list",
-                .fn     = common_fn,
         },
         {
                 .id 	= retr,
                 .name 	= "retr",
-                .fn     = retr_fn,
         },
         {
                 .id 	= dele,
                 .name 	= "dele",
-                .fn     = common_fn,
         },
         {
                 .id 	= noop,
                 .name 	= "noop",
-                .fn     = common_fn,
         },
         {
                 .id 	= rset,
                 .name 	= "rset",
-                .fn     = common_fn,
         },
         {
                 .id 	= top,
                 .name 	= "top",
-                .fn     = common_fn,
         },
         {
                 .id 	= uidl,
                 .name 	= "uidl",
-                .fn     = common_fn,
         },
         {
                 .id 	= quit,
                 .name 	= "quit",
-                .fn     = common_fn,
         },
         {
                 .id 	= capa,
                 .name 	= "capa",
-                .fn     = common_fn,
         },
 };
 
 const struct pop3_request_cmd invalid_cmd = {
         .id     = error,
         .name   = NULL,
-        .fn     = NULL,
 };
 
 
