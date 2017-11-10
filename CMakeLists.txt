@@ -13,3 +13,6 @@ add_executable(pop3filter ${SOURCE_FILES})
 
 AUX_SOURCE_DIRECTORY(pop3ctl/src POP3CTL_SOURCE_FILES)
 add_executable(pop3ctl ${POP3CTL_SOURCE_FILES})
+
+AUX_SOURCE_DIRECTORY(stripmime/src STRIPMIME_SOURCE_FILES)
+add_executable(stripmime ${STRIPMIME_SOURCE_FILES})
