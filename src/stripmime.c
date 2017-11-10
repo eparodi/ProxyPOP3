@@ -164,7 +164,7 @@ pop3_multi(struct ctx *ctx, const uint8_t c) {
 }
 
 int
-stripmime(int argc, const char **argv) {
+stripmime(int argc, const char **argv, struct Tree* tree) {
     int fd = STDIN_FILENO;
     if(argc > 1) {
         fd = open(argv[1], 0);

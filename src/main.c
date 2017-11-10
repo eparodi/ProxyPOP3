@@ -70,6 +70,7 @@ int main(int argc, char const *argv[]) {
 		strcpy(subtype, mime);
 
 		addNode(tree, type, subtype); // TODO (facu)
+		//removeNode(tree,type,subtype);
 
 		//printf("'%s'/'%s'\n", type, subtype);
     
@@ -79,5 +80,5 @@ int main(int argc, char const *argv[]) {
 
 	free(fm);
 
-	return stripmime(argc, argv);
+	return stripmime(argc, argv, tree);
 }

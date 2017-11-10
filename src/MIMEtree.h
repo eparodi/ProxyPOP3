@@ -27,5 +27,7 @@ struct Tree* tree_init(void);
 
 void addNode(struct Tree* tree, char* type,char* subtype);
 
+void removeNode(struct Tree* tree, char* type, char* subtype);
+
 
 #endif

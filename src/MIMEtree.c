@@ -43,7 +43,7 @@ newNodeWildcard(){
 		node->parser = NULL;
 		node->next = NULL;
 		node->children = NULL;
-		node->name = "*";
+		node->name = WILDCARD;
 		node->match = true;
 		node->wildcard = true;
 	}
@@ -52,46 +52,58 @@ newNodeWildcard(){
 
 struct TreeNode*
 removeChildren(struct TreeNode* node){
+	struct TreeNode* aux = node->children;
+	struct TreeNode* tmp;
+	while(aux->next!=NULL){
+		tmp = aux;
+		aux = aux->next;
+		free(aux);
+	}
+	free(node->children);
 	node->children = NULL;
 	return node;
+}
+
+bool
+checkTypeMatch(struct TreeNode* node, char* type, bool* found){
+	if(strcmp(node->name,type) == 0){
+		*found = true;
+	}
+	return *found;
 }
 
 struct TreeNode*
 findTypeMatch(struct Tree* tree, char* type, bool* found){
 	struct TreeNode* node = tree->first;
-	if(strcmp(node->name,type) == 0){
-		*found = true;
+	if(checkTypeMatch(node,type,found)){
 		return node;
 	}
 	while(node->next != NULL){
 		node = node->next;
-		if(strcmp(node->name,type)==0){
-			*found = true;
+		if(checkTypeMatch(node,type,found)){
 			return node;
 		}
-		
 	}
 	return node;
 }
 
+
+bool
+checkSubTypeMatch(struct TreeNode* node, char* subtype, bool* found){
+	if(node->wildcard || strcmp(node->name,subtype) == 0){
+		*found = true;
+	}
+	return *found;
+}
+
 struct TreeNode*
 findSubTypeMatch(struct TreeNode* node, char* subtype, bool* found){
-	if(node->wildcard){
-			*found = true;
-			return node;
-		}
-		if(strcmp(node->name,subtype) == 0){
-			*found = true;
-			return node;
-		}
+	if(checkSubTypeMatch(node,subtype,found)){
+		return node;
+	}
 	while(node->next != NULL){
 		node = node->next;
-		if(node->wildcard){
-			*found = true;
-			return node;
-		}
-		if(strcmp(node->name,subtype) == 0){
-			*found = true;
+		if(checkSubTypeMatch(node,subtype,found)){
 			return node;
 		}
 	}
@@ -102,9 +114,11 @@ void addWildcard(struct TreeNode* node, char* type, bool found){
 	if(found){
 		removeChildren(node);
 		node->children = newNodeWildcard();
+		printf("Created new Node: %s/*\n", type);
 	}else{
 		node->next = newNode(type);
 		node->next->children = newNodeWildcard();
+		printf("Created new Node: %s/*\n", type);
 	}
 	return;
 }
@@ -126,7 +140,6 @@ addNode(struct Tree* tree, char* type, char* subtype) {
 		bool found = false;
 		struct TreeNode* node = findTypeMatch(tree,type,&found);
 	if(strcmp(subtype,WILDCARD) == 0){
-		printf("WILDCARD\n");
 		addWildcard(node,type,found);
 	}else{
 		if(found){
@@ -155,26 +168,28 @@ removeNode(struct Tree* tree, char* type, char*subtype){
 	struct TreeNode* tmpType;
 	struct TreeNode* tmpSubType;
 	struct TreeNode* nodeSubType;
+	if(nodeType == NULL){
+		return;
+	}
 	if(strcmp(nodeType->name,type) == 0){
-		tmpType = nodeType;
-		nodeType = nodeType->next;
-		if(strcmp(nodeType->name,type) == 0){
 			nodeSubType = nodeType->children;
 			if(strcmp(nodeSubType->name,subtype) == 0){
 				nodeType->children = nodeSubType->next;
+				free(nodeSubType);
 			}
 			while(nodeSubType->next != NULL){
 				tmpSubType = nodeSubType;
 				nodeSubType = nodeSubType->next;
 				if(strcmp(nodeSubType->name,subtype)==0){
 					tmpSubType->next = nodeSubType->next;
+					free(nodeSubType);
 				}
 			}
 			if(nodeType->children == NULL){
-				tmpType->next = nodeType->next;
+				tree->first = nodeType->next;
+				free(nodeType);
 				return;
 			}
-	}
 	while(nodeType->next!= NULL){
 		tmpType = nodeType;
 		nodeType = nodeType->next;
@@ -182,16 +197,19 @@ removeNode(struct Tree* tree, char* type, char*subtype){
 			nodeSubType = nodeType->children;
 			if(strcmp(nodeSubType->name,subtype) == 0){
 				nodeType->children = nodeSubType->next;
+				free(nodeSubType);
 			}
 			while(nodeSubType->next != NULL){
 				tmpSubType = nodeSubType;
 				nodeSubType = nodeSubType->next;
 				if(strcmp(nodeSubType->name,subtype)==0){
 					tmpSubType->next = nodeSubType->next;
+					free(nodeSubType);
 				}
 			}
 			if(nodeType->children == NULL){
 				tmpType->next = nodeType->next;
+				free(nodeType);
 				return;
 			}
 		}

@@ -1,6 +1,6 @@
 #ifndef STRIPMIME_H_
 #define STRIPMIME_H_
 
-int stripmime(int argc, const char **argv);
+int stripmime(int argc, const char **argv, struct Tree* tree);
 
 #endif
