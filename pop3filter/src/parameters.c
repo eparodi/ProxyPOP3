@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <arpa/inet.h>
 #include <memory.h>
+#include <netdb.h>
 
 #include "parameters.h"
 #include "media_types.h"
@@ -30,15 +31,17 @@ void print_version() {
     printf("POP3 Proxy 1.0");
 }
 
+void resolv_addr();
+
 options parse_options(int argc, char **argv) {
 
     /* Initialize default values */
     parameters = malloc(sizeof(*parameters));
     parameters->port = 1110;
     parameters->error_file = "/dev/null";
-    parameters->management_address = inet_addr("127.0.0.1");
+    parameters->management_address = "127.0.0.1";
     parameters->management_port = 9090;
-    parameters->listen_address = INADDR_ANY;
+    parameters->listen_address = "0.0.0.0";
     parameters->replacement_msg = "Parte reemplazada.";
     parameters->origin_port = 110;
     parameters->filter_command = "echo hola"; //TODO: pasarlo a Null
@@ -77,23 +80,11 @@ options parse_options(int argc, char **argv) {
                 break;
                 /* Listen address */
             case 'l':
-                parameters->listen_address = inet_addr(optarg);
-
-                if (parameters->listen_address == INADDR_NONE) {
-                    fprintf(stderr, "Invalid listen address\n");
-                    exit(1);
-                }
-
+                parameters->listen_address = optarg;
                 break;
                 /* Management listen address */
             case 'L':
-                parameters->management_address = inet_addr(optarg);
-
-                if (parameters->management_address == INADDR_NONE) {
-                    fprintf(stderr, "Invalid management address\n");
-                    exit(1);
-                }
-
+                parameters->management_address = optarg;
                 break;
                 /* Replacement message */
             case 'm':
@@ -158,7 +149,54 @@ options parse_options(int argc, char **argv) {
         exit(1);
     }
 
+    resolv_addr();
+
     return parameters;
+}
+
+void resolv_addr() {
+
+    parameters->managementaddrinfo = 0;
+    parameters->listenadddrinfo = 0;
+
+
+    struct addrinfo hints = {
+            .ai_family    = AF_UNSPEC,    /* Allow IPv4 or IPv6 */
+            .ai_socktype  = SOCK_STREAM,  /* Datagram socket */
+            .ai_flags     = AI_PASSIVE,   /* For wildcard IP address */
+            .ai_protocol  = 0,            /* Any protocol */
+            .ai_canonname = NULL,
+            .ai_addr      = NULL,
+            .ai_next      = NULL,
+    };
+
+    char buff[7];
+    snprintf(buff, sizeof(buff), "%hu",
+             parameters->port);
+    if (0 != getaddrinfo(parameters->listen_address, buff, &hints,
+                         &parameters->listenadddrinfo)){
+        sprintf(stderr,"Domain name resolution error\n");
+    }
+
+    char mgmt_buff[7];
+    snprintf(buff, sizeof(mgmt_buff), "%hu",
+             parameters->management_port);
+
+
+    struct addrinfo hints2 = {
+            .ai_family    = AF_UNSPEC,    /* Allow IPv4 or IPv6 */
+            .ai_socktype  = SOCK_STREAM,  /* Datagram socket */
+            .ai_flags     = AI_PASSIVE,   /* For wildcard IP address */
+            .ai_protocol  = 0,            /* Any protocol */
+            .ai_canonname = NULL,
+            .ai_addr      = NULL,
+            .ai_next      = NULL,
+    };
+
+    if (0 != getaddrinfo(parameters->management_address, mgmt_buff, &hints2,
+                         &parameters->managementaddrinfo)){
+        sprintf(stderr,"Domain name resolution error\n");
+    }
 }
 
 options get_parameters(){

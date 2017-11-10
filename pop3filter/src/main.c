@@ -15,13 +15,17 @@
 
 #define PENDING_CONNECTIONS 10
 
-int create_master_socket(int protocol, struct sockaddr_in * addr){
+int create_master_socket(int protocol, struct addrinfo *addr) {
     int master_socket;
     int sock_opt = true;
-    struct sockaddr_in address = * addr;
 
-    // create a master tcp socket
-    if ((master_socket = socket(AF_INET , SOCK_STREAM , protocol)) == 0) {
+    if (protocol == IPPROTO_SCTP) {
+        ((struct sockaddr_in *) addr->ai_addr)->sin_port = htons(
+                parameters->management_port);
+    }
+
+    // create a master socket
+    if ((master_socket = socket(addr->ai_family, SOCK_STREAM, protocol)) == 0) {
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
@@ -34,8 +38,8 @@ int create_master_socket(int protocol, struct sockaddr_in * addr){
         exit(EXIT_FAILURE);
     }
 
-    //bind the socket to localhost port
-    if (bind(master_socket, (struct sockaddr *)&address, sizeof(address))<0) {
+    //bind the socket
+    if (bind(master_socket, addr->ai_addr, addr->ai_addrlen) < 0) {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
@@ -47,21 +51,8 @@ int main (int argc, char ** argv) {
 
     options opt = parse_options(argc,argv);
 
-    struct sockaddr_in address_proxy;
-
-    //type of socket created
-    address_proxy.sin_family      = AF_INET;
-    address_proxy.sin_addr.s_addr = parameters->listen_address;
-    address_proxy.sin_port        = htons(opt->port);
-
-    struct sockaddr_in address_management;
-
-    address_management.sin_family      = AF_INET;
-    address_management.sin_addr.s_addr = parameters->management_address;
-    address_management.sin_port        = htons(opt->management_port);
-
-    int master_tcp_socket = create_master_socket(IPPROTO_TCP, &address_proxy);
-    int master_sctp_socket = create_master_socket(IPPROTO_SCTP, &address_management);
+    int master_tcp_socket = create_master_socket(
+            IPPROTO_TCP, parameters->listenadddrinfo);
 
     //try to specify maximum of 3 pending connections for the master socket
     if (listen(master_tcp_socket, PENDING_CONNECTIONS) < 0) {
@@ -69,7 +60,10 @@ int main (int argc, char ** argv) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Listening on TCP port %d \n", opt->port);
+    printf("Listening on TCP %s:%d \n", opt->listen_address, opt->port);
+
+    int master_sctp_socket = create_master_socket(
+            IPPROTO_SCTP, parameters->managementaddrinfo);
 
     //try to specify maximum of 3 pending connections for the master socket
     if (listen(master_sctp_socket, PENDING_CONNECTIONS) < 0) {
@@ -77,7 +71,8 @@ int main (int argc, char ** argv) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Listening on SCTP port %d \n", opt->management_port);
+    printf("Listening on SCTP %s:%d \n", opt->management_address,
+           opt->management_port);
 
     //accept the incoming connection
     puts("Waiting for connections ...");
@@ -118,9 +113,11 @@ int main (int argc, char ** argv) {
             .handle_close      = NULL,
     };
 
-    selector_status ss_pop3 = selector_register(selector, master_tcp_socket, &pop3_handler, OP_READ, NULL);
+    selector_status ss_pop3 = selector_register(selector, master_tcp_socket,
+                                                &pop3_handler, OP_READ, NULL);
 
-    selector_status ss_manag = selector_register(selector, master_sctp_socket, &management_handler, OP_READ, NULL);
+    selector_status ss_manag = selector_register(
+            selector, master_sctp_socket, &management_handler, OP_READ, NULL);
 
     if(ss_pop3 != SELECTOR_SUCCESS || ss_manag != SELECTOR_SUCCESS) {
         err_msg = "registering fd";

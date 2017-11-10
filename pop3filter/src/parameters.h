@@ -7,8 +7,8 @@
 struct options {
     uint16_t port;
     char * error_file;
-    in_addr_t listen_address;
-    in_addr_t management_address;
+    char * listen_address;
+    char * management_address;
     uint16_t management_port;
     char * replacement_msg;
     struct media_types * filtered_media_types;
@@ -16,6 +16,8 @@ struct options {
     uint16_t origin_port;
     char * filter_command;
     char * version;
+    struct addrinfo * listenadddrinfo;
+    struct addrinfo * managementaddrinfo;
 };
 
 typedef struct options * options;
