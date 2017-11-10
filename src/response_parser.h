@@ -9,6 +9,7 @@
 #include "buffer.h"
 #include "response.h"
 #include "request.h"
+#include "parser.h"
 
 #define STATUS_SIZE         4
 #define MAX_RESPONSE_SIZE   512
@@ -37,6 +38,8 @@ struct response_parser {
     // TODO podria usar buffer.c
     char                  status_buffer[STATUS_SIZE];
     char                  description_buffer[DESCRIPTION_SIZE];
+
+    struct parser         *pop3_multi_parser;
 };
 
 /** inicializa el parser */

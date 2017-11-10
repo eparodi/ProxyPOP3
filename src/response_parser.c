@@ -8,6 +8,7 @@
 #include <stdlib.h>
 
 #include "response_parser.h"
+#include "pop3_multi.h"
 
 enum response_state
 status(const uint8_t c, struct response_parser* p) {
@@ -44,13 +45,18 @@ enum response_state
 newline(const uint8_t c, struct response_parser *p) {
     enum response_state ret = response_done;
 
-    //TODO multilinea
-    switch (p->request->cmd->id) {
-        case retr:
-        case list:
-        case capa:
-            // ret = multiline_baby!
-            break;
+    if (p->request->response->status != response_status_err) {
+        switch (p->request->cmd->id) {
+            case retr:
+                ret = response_mail;
+                break;
+            case list:
+                ret = response_list;
+                break;
+            case capa:
+                ret = response_capa;
+                break;
+        }
     }
 
     return c != '\n' ? response_error : ret;
@@ -58,17 +64,58 @@ newline(const uint8_t c, struct response_parser *p) {
 
 enum response_state
 mail(const uint8_t c, struct response_parser* p) {
-    //TODO usar el parser pop3_multi
+    //TODO usar stripmime
+    const struct parser_event * e = parser_feed(p->pop3_multi_parser, c);
+    enum response_state ret = response_mail;
 
-    return response_mail;
+    switch (e->type) {
+        case POP3_MULTI_FIN:
+            ret = response_done;
+            break;
+    }
+
+    return ret;
 }
 
+enum response_state
+plist(const uint8_t c, struct response_parser* p) {
+    const struct parser_event * e = parser_feed(p->pop3_multi_parser, c);
+    enum response_state ret = response_list;
+
+    switch (e->type) {
+        case POP3_MULTI_FIN:
+            ret = response_done;
+            break;
+    }
+
+    return ret;
+}
+
+enum response_state
+pcapa(const uint8_t c, struct response_parser* p) {
+    const struct parser_event * e = parser_feed(p->pop3_multi_parser, c);
+    enum response_state ret = response_capa;
+
+    switch (e->type) {
+        case POP3_MULTI_FIN:
+            ret = response_done;
+            break;
+    }
+
+    return ret;
+}
 
 extern void
 response_parser_init (struct response_parser* p) {
     memset(p->status_buffer, 0, STATUS_SIZE);
     p->state = response_status_indicator;
     p->i = 0;
+
+    if (p->pop3_multi_parser == NULL) {
+        p->pop3_multi_parser = parser_init(parser_no_classes(), pop3_multi_parser());
+    }
+
+    parser_reset(p->pop3_multi_parser);
 }
 
 extern enum response_state
@@ -87,6 +134,12 @@ response_parser_feed (struct response_parser* p, const uint8_t c) {
             break;
         case response_mail:
             next = mail(c, p);
+            break;
+        case response_list:
+            next = plist(c, p);
+            break;
+        case response_capa:
+            next = pcapa(c, p);
             break;
         case response_done:
         case response_error:
