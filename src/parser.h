@@ -74,6 +74,13 @@ parser_destroy  (struct parser *p);
 void
 parser_reset    (struct parser *p);
 
+
+const struct parser_event *
+parser_feed_type (struct Tree* mime_tree, struct TreeNode* subtype, const uint8_t c);
+
+const struct parser_event *
+parser_feed_subtype (struct TreeNode* node, const uint8_t c);
+
 /**
  * el usuario alimenta el parser con un caracter, y el parser retorna un evento
  * de parsing. Los eventos son reusado entre llamadas por lo que si se desea

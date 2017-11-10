@@ -8,7 +8,7 @@ struct TreeNode{
 	struct TreeNode *next;
 	struct TreeNode *children;
 	const char* name;
-	bool match;
+	unsigned event;
 	bool wildcard;
 };
 

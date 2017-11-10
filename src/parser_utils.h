@@ -32,7 +32,6 @@ parser_utils_strcmpi(const char *s);
 struct parser_definition
 parser_utils_list_strcmpi(const char *filtered_list[]);
 
-
 /**
  * libera recursos asociado a una llamada de `parser_utils_strcmpi'
  */

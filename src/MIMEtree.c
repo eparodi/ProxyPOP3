@@ -29,7 +29,7 @@ newNode(char* name){
 		node->next = NULL;
 		node->children = NULL;
 		node->name = name;
-		node->match = true;
+		node->event = NULL;
 		node->wildcard = false;		
 	}
 	return node;
@@ -44,7 +44,7 @@ newNodeWildcard(){
 		node->next = NULL;
 		node->children = NULL;
 		node->name = WILDCARD;
-		node->match = true;
+		node->event = NULL; //TODO deberia ser NULL?
 		node->wildcard = true;
 	}
 	return node;

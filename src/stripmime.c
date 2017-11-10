@@ -47,6 +47,10 @@ struct ctx {
 
     struct parser* filtered_msg;
 
+    struct Tree* mime_tree;
+
+    struct TreeNode* subtype;
+
     /* ¿hemos detectado si el field-name que estamos procesando refiere
      * a Content-Type?. Utilizando dentro msg para los field-name.
      */
@@ -59,16 +63,50 @@ static bool F = false;
 
 
 static void
+content_type_type(struct ctx*ctx, const uint8_t c){
+    const struct parser_event* e = parser_feed_type(ctx->mime_tree,node,c);
+    do{
+        debug("4.type", parser_utils_strcmpi_event, e);
+        switch(e->type){
+            case STRING_CMP_EQ:
+                content_type_subtype(ctx,c);
+                break;
+            case STRING_CMP_NEQ:
+                //TODO
+                break;
+        }
+        e = e->next;
+    } while (e != NULL);
+}
+
+static void
+content_type_subtype(struct ctx*ctx, const uint8_t c){
+    const struct parser_event* e = parser_feed_subtype(ctx->subtype,c);
+    do{
+        debug("4.subtype", parser_utils_strcmpi_event, e);
+        switch(e->type){
+            case STRING_CMP_EQ:
+                ctx->filtered_msg_detected = &T;
+                break;
+            case STRING_CMP_NEQ:
+                ctx->filtered_msg_detected = &F;
+                break;
+        }
+        e = e->next;
+    } while(e != NULL);
+}
+
+static void
 content_type_value(struct ctx*ctx, const uint8_t c){
     const struct parser_event* e = parser_feed(ctx->filtered_msg, c);
     do{
         debug("3.typeval", mime_type_event, e);
         switch(e->type){
             case MIME_TYPE_TYPE:
-                ctx->filtered_msg_detected = &T;
+                content_type_type(ctx,c);
                 break;
             case MIME_TYPE_SUBTYPE:
-                ctx->filtered_msg_detected = &F;
+                content_type_subtype(ctx,c);
                 break;
         }
         e = e->next;

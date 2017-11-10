@@ -89,3 +89,9 @@ parser_no_classes(void) {
     return classes;
 }
 
+
+const struct parser_event *
+parser_feed_type(struct Tree* mime_tree, struct TreeNode* node, const uint8_t c){
+    
+}
+
