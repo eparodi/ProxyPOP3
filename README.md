@@ -1,6 +1,6 @@
 # ProxyPOP3
 ## Instalación
-Para compilar correr `cmake .` y luego 'make' en el directorio raíz.
+Para compilar correr `cmake .` y luego `make` en el directorio raíz.
 
 Los binarios se generan en la raíz del directorio con los nombres:
 * pop3filter:
