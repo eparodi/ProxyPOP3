@@ -174,7 +174,10 @@ int parse_commands(struct management *data){
     int st_err;
     data->argc = 0;
     cmd = sctp_parse_cmd(&data->buffer_read, data, &data->argc, &st_err);
-    if (st_err != ERROR_DISCONNECT && act->args != 0 && act->args != data->argc)
+    if (st_err == ERROR_DISCONNECT){
+        return -1;
+    }
+    if (act->args != 0 && act->args != data->argc)
         st_err = ERROR_WRONGARGS;
     if (strcasecmp("QUIT", cmd[0]) == 0 & data->argc == 1){
         return goodbye(data);
@@ -189,8 +192,6 @@ int parse_commands(struct management *data){
             break;
         case ERROR_MALLOC:
             send_error(data, "server error. Try again later.");
-        case ERROR_DISCONNECT:
-            return -1;
         default:
             break;
     }
