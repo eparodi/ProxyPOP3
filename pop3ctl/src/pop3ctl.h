@@ -3,7 +3,7 @@
 
 struct options {
     char* management_address;
-    char* management_port;
+    uint16_t management_port;
     struct addrinfo * managementaddrinfo;
 };
 

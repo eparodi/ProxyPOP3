@@ -18,11 +18,11 @@ void resolv_addr() {
     ctl_parameters->managementaddrinfo = 0;
 
     char mgmt_buff[7];
-    snprintf(buff, sizeof(mgmt_buff), "%hu",
+    snprintf(mgmt_buff, sizeof(mgmt_buff), "%hu",
              ctl_parameters->management_port);
 
 
-    struct addrinfo hints2 = {
+    struct addrinfo hints = {
             .ai_family    = AF_UNSPEC,    /* Allow IPv4 or IPv6 */
             .ai_socktype  = SOCK_STREAM,  /* Datagram socket */
             .ai_flags     = AI_PASSIVE,   /* For wildcard IP address */
@@ -32,7 +32,7 @@ void resolv_addr() {
             .ai_next      = NULL,
     };
 
-    if (0 != getaddrinfo(ctl_parameters->management_address, mgmt_buff, &hints2,
+    if (0 != getaddrinfo(ctl_parameters->management_address, mgmt_buff, &hints,
                          &ctl_parameters->managementaddrinfo)){
         sprintf(stderr,"Domain name resolution error\n");
     }
@@ -42,9 +42,8 @@ options parse_ctl_options(int argc, char **argv) {
 
     /* Initialize default values */
     ctl_parameters                          = malloc(sizeof(*ctl_parameters));
-    ctl_parameters->management_address      = inet_addr("127.0.0.1");
+    ctl_parameters->management_address      = "127.0.0.1";
     ctl_parameters->management_port         = 9090;
-    ctl_parameters->listen_family           = AF_INET;
 
     int c;
 
@@ -55,12 +54,7 @@ options parse_ctl_options(int argc, char **argv) {
         switch (c) {
             /* Management listen address */
             case 'L':
-                ctl_parameters->management_address = inet_addr(optarg);
-
-                if (ctl_parameters->management_address == INADDR_NONE) {
-                    fprintf(stderr, "Invalid management address\n");
-                    exit(1);
-                }
+                ctl_parameters->management_address = optarg;
                 break;
                 /* Management SCTP port */
             case 'o':
@@ -82,6 +76,8 @@ options parse_ctl_options(int argc, char **argv) {
         }
     }
 
+    resolv_addr();
+
     return ctl_parameters;
 }
 
@@ -96,7 +92,8 @@ main (int argc, char* argv[]){
     char buffer[MAX_BUFFER + 1];
     int datalen = 0;
 
-    connection_socket = socket (AF_INET, SOCK_STREAM, IPPROTO_SCTP);
+    connection_socket = socket (ctl_parameters->managementaddrinfo->ai_family,
+                                SOCK_STREAM, IPPROTO_SCTP);
 
     if (connection_socket == -1){
         printf("Socket creation failed\n");
@@ -104,13 +101,9 @@ main (int argc, char* argv[]){
         exit(1);
     }
 
-    bzero ((void *) &servaddr, sizeof (servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(opt->management_port);
-    servaddr.sin_addr.s_addr = opt->management_address;
-
     ret = connect (connection_socket,
-                   (struct sockaddr *) &servaddr, sizeof (servaddr));
+                   ctl_parameters->managementaddrinfo->ai_addr,
+                   ctl_parameters->managementaddrinfo->ai_addrlen);
 
     if (ret == -1){
         fprintf(stderr, "Connection failed\n");
