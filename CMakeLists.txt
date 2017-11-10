@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.5)
 project(tpe_protos)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -9,4 +9,7 @@ add_compile_options("-lsctp")
 link_libraries("-lsctp")
 
 AUX_SOURCE_DIRECTORY(pop3filter/src SOURCE_FILES)
-add_executable(tpe_protos ${SOURCE_FILES})
+add_executable(pop3filter ${SOURCE_FILES})
+
+AUX_SOURCE_DIRECTORY(pop3ctl/src POP3CTL_SOURCE_FILES)
+add_executable(pop3ctl ${POP3CTL_SOURCE_FILES})
