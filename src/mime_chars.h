@@ -76,7 +76,7 @@
  */
 enum mime_char_class {
     // arrancamos en 10 para que sea compatible con los caracteres.
-            TOKEN_CHAR              = 1 << 10,
+    TOKEN_CHAR              = 1 << 10,
     TOKEN_ALPHA             = 1 << 11,
     TOKEN_DIGIT             = 1 << 12,
     TOKEN_CTL               = 1 << 13,

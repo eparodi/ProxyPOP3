@@ -1,6 +1,6 @@
 #include "parser.h"
 #include "mime_chars.h"
-#include "MIMEparser.h"
+#include "mime_msg.h"
 
 /**
  * RFC822:
@@ -119,101 +119,101 @@ unexpected(struct parser_event *ret, const uint8_t c) {
 // Transiciones
 
 static const struct parser_state_transition ST_NAME0[] =  {
-        {.when = ':',        .dest = ERROR,         .act1 = unexpected,},
-        {.when = ' ',        .dest = ERROR,         .act1 = unexpected,},
-        {.when = TOKEN_CTL,  .dest = ERROR,         .act1 = unexpected,},
-        {.when = TOKEN_CHAR, .dest = NAME,          .act1 = name,      },
-        {.when = ANY,        .dest = ERROR,         .act1 = unexpected,},
+    {.when = ':',        .dest = ERROR,         .act1 = unexpected,},
+    {.when = ' ',        .dest = ERROR,         .act1 = unexpected,},
+    {.when = TOKEN_CTL,  .dest = ERROR,         .act1 = unexpected,},
+    {.when = TOKEN_CHAR, .dest = NAME,          .act1 = name,      },
+    {.when = ANY,        .dest = ERROR,         .act1 = unexpected,},
 };
 
 static const struct parser_state_transition ST_NAME[] =  {
-        {.when = ':',        .dest = VALUE,         .act1 = name_end,  },
-        {.when = ' ',        .dest = ERROR,         .act1 = unexpected,},
-        {.when = TOKEN_CTL,  .dest = ERROR,         .act1 = unexpected,},
-        {.when = TOKEN_CHAR, .dest = NAME,          .act1 = name,      },
-        {.when = ANY,        .dest = ERROR,         .act1 = unexpected,},
+    {.when = ':',        .dest = VALUE,         .act1 = name_end,  },
+    {.when = ' ',        .dest = ERROR,         .act1 = unexpected,},
+    {.when = TOKEN_CTL,  .dest = ERROR,         .act1 = unexpected,},
+    {.when = TOKEN_CHAR, .dest = NAME,          .act1 = name,      },
+    {.when = ANY,        .dest = ERROR,         .act1 = unexpected,},
 };
 
 static const struct parser_state_transition ST_VALUE[] =  {
-        {.when = '\r',       .dest = VALUE_CR,       .act1 = wait,      },
-        {.when = ANY,        .dest = VALUE,          .act1 = value,     },
+    {.when = '\r',       .dest = VALUE_CR,       .act1 = wait,      },
+    {.when = ANY,        .dest = VALUE,          .act1 = value,     },
 };
 
 static const struct parser_state_transition ST_VALUE_CR[] =  {
-        {.when = '\n',       .dest = VALUE_CRLF,     .act1 = wait,      },
-        {.when = ANY,        .dest = VALUE,          .act1 = value_cr,
-                .act2 = value,     },
+    {.when = '\n',       .dest = VALUE_CRLF,     .act1 = wait,      },
+    {.when = ANY,        .dest = VALUE,          .act1 = value_cr,
+                                                 .act2 = value,     },
 };
 
 static const struct parser_state_transition ST_VALUE_CRLF[] =  {
-        {.when = ':',        .dest = ERROR,          .act1 = unexpected,},
-        {.when = '\r',       .dest = VALUE_CRLF_CR,  .act1 = wait,},
-        {.when = TOKEN_LWSP, .dest = FOLD,           .act1 = value_fold_crlf,
-                .act2 = value_fold,},
-        {.when = TOKEN_CTL,  .dest = ERROR,          .act1 = value_end,
-                .act2 = unexpected,},
-        {.when = TOKEN_CHAR, .dest = NAME,           .act1 = value_end,
-                .act2 = name,      },
-        {.when = ANY,        .dest = ERROR,          .act1 = unexpected,},
+    {.when = ':',        .dest = ERROR,          .act1 = unexpected,},
+    {.when = '\r',       .dest = VALUE_CRLF_CR,  .act1 = wait,},
+    {.when = TOKEN_LWSP, .dest = FOLD,           .act1 = value_fold_crlf,
+                                                 .act2 = value_fold,},
+    {.when = TOKEN_CTL,  .dest = ERROR,          .act1 = value_end,
+                                                 .act2 = unexpected,},
+    {.when = TOKEN_CHAR, .dest = NAME,           .act1 = value_end,
+                                                 .act2 = name,      },
+    {.when = ANY,        .dest = ERROR,          .act1 = unexpected,},
 };
 
 static const struct parser_state_transition ST_FOLD[] =  {
-        {.when =TOKEN_LWSP,  .dest = FOLD,           .act1 = value_fold,},
-        {.when = ANY,        .dest = VALUE,          .act1 = value,     },
+    {.when =TOKEN_LWSP,  .dest = FOLD,           .act1 = value_fold,},
+    {.when = ANY,        .dest = VALUE,          .act1 = value,     },
 };
 
 static const struct parser_state_transition ST_VALUE_CRLF_CR[] =  {
-        {.when = '\n',        .dest = BODY,          .act1 = value_end,
-                .act2 = body_start,},
-        {.when = ANY,         .dest = ERROR,         .act1 = value_end,
-                .act2 = unexpected,},
+    {.when = '\n',        .dest = BODY,          .act1 = value_end,
+                                                 .act2 = body_start,},
+    {.when = ANY,         .dest = ERROR,         .act1 = value_end,
+                                                 .act2 = unexpected,},
 };
 
 static const struct parser_state_transition ST_BODY[] =  {
-        {.when = ANY,        .dest = BODY,           .act1 = body,},
+    {.when = ANY,        .dest = BODY,           .act1 = body,},
 };
 
 static const struct parser_state_transition ST_ERROR[] =  {
-        {.when = ANY,        .dest = ERROR,           .act1 = unexpected,},
+    {.when = ANY,        .dest = ERROR,           .act1 = unexpected,},
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // Declaración formal
 
 static const struct parser_state_transition *states [] = {
-        ST_NAME0,
-        ST_NAME,
-        ST_VALUE,
-        ST_VALUE_CR,
-        ST_VALUE_CRLF,
-        ST_FOLD,
-        ST_VALUE_CRLF_CR,
-        ST_BODY,
-        ST_ERROR,
+    ST_NAME0,
+    ST_NAME,
+    ST_VALUE,
+    ST_VALUE_CR,
+    ST_VALUE_CRLF,
+    ST_FOLD,
+    ST_VALUE_CRLF_CR,
+    ST_BODY,
+    ST_ERROR,
 };
 
 #define N(x) (sizeof(x)/sizeof((x)[0]))
 
 static const size_t states_n [] = {
-        N(ST_NAME0),
-        N(ST_NAME),
-        N(ST_VALUE),
-        N(ST_VALUE_CR),
-        N(ST_VALUE_CRLF),
-        N(ST_FOLD),
-        N(ST_VALUE_CRLF_CR),
-        N(ST_BODY),
-        N(ST_ERROR),
+    N(ST_NAME0),
+    N(ST_NAME),
+    N(ST_VALUE),
+    N(ST_VALUE_CR),
+    N(ST_VALUE_CRLF),
+    N(ST_FOLD),
+    N(ST_VALUE_CRLF_CR),
+    N(ST_BODY),
+    N(ST_ERROR),
 };
 
 static struct parser_definition definition = {
-        .states_count = N(states),
-        .states       = states,
-        .states_n     = states_n,
-        .start_state  = NAME0,
+    .states_count = N(states),
+    .states       = states,
+    .states_n     = states_n,
+    .start_state  = NAME0,
 };
 
-const struct parser_definition *
+const struct parser_definition * 
 mime_message_parser(void) {
     return &definition;
 }
