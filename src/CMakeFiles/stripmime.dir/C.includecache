@@ -6,9 +6,23 @@
 
 #IncludeRegexTransform: 
 
-/home/flacu/Downloads/mime/src/main.c
-stripmime.h
-/home/flacu/Downloads/mime/src/stripmime.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/MIMEtree.h
+stdbool.h
+-
 
-/home/flacu/Downloads/mime/src/stripmime.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/main.c
+stdlib.h
+-
+stdio.h
+-
+stdbool.h
+-
+string.h
+-
+stripmime.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/stripmime.h
+MIMEtree.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/MIMEtree.h
+
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/stripmime.h
 

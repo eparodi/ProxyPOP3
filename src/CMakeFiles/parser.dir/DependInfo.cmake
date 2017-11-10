@@ -4,13 +4,14 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_C
-  "/home/flacu/Downloads/mime/src/mime_chars.c" "/home/flacu/Downloads/mime/src/CMakeFiles/parser.dir/mime_chars.c.o"
-  "/home/flacu/Downloads/mime/src/mime_msg.c" "/home/flacu/Downloads/mime/src/CMakeFiles/parser.dir/mime_msg.c.o"
-  "/home/flacu/Downloads/mime/src/mime_type.c" "/home/flacu/Downloads/mime/src/CMakeFiles/parser.dir/mime_type.c.o"
-  "/home/flacu/Downloads/mime/src/parser.c" "/home/flacu/Downloads/mime/src/CMakeFiles/parser.dir/parser.c.o"
-  "/home/flacu/Downloads/mime/src/parser_utils.c" "/home/flacu/Downloads/mime/src/CMakeFiles/parser.dir/parser_utils.c.o"
-  "/home/flacu/Downloads/mime/src/pop3_multi.c" "/home/flacu/Downloads/mime/src/CMakeFiles/parser.dir/pop3_multi.c.o"
-  "/home/flacu/Downloads/mime/src/stripmime.c" "/home/flacu/Downloads/mime/src/CMakeFiles/parser.dir/stripmime.c.o"
+  "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/MIMEtree.c" "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/CMakeFiles/parser.dir/MIMEtree.c.o"
+  "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_chars.c" "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/CMakeFiles/parser.dir/mime_chars.c.o"
+  "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_msg.c" "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/CMakeFiles/parser.dir/mime_msg.c.o"
+  "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_type.c" "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/CMakeFiles/parser.dir/mime_type.c.o"
+  "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser.c" "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/CMakeFiles/parser.dir/parser.c.o"
+  "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser_utils.c" "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/CMakeFiles/parser.dir/parser_utils.c.o"
+  "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/pop3_multi.c" "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/CMakeFiles/parser.dir/pop3_multi.c.o"
+  "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/stripmime.c" "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/CMakeFiles/parser.dir/stripmime.c.o"
   )
 set(CMAKE_C_COMPILER_ID "GNU")
 

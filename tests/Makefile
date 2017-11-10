@@ -48,10 +48,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/flacu/Downloads/mime
+CMAKE_SOURCE_DIR = /home/flacu/Downloads/MIMEstrip/ProxyPOP3
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/flacu/Downloads/mime
+CMAKE_BINARY_DIR = /home/flacu/Downloads/MIMEstrip/ProxyPOP3
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -135,14 +135,14 @@ install/strip/fast: install/strip
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/flacu/Downloads/mime && $(CMAKE_COMMAND) -E cmake_progress_start /home/flacu/Downloads/mime/CMakeFiles /home/flacu/Downloads/mime/tests/CMakeFiles/progress.marks
-	cd /home/flacu/Downloads/mime && $(MAKE) -f CMakeFiles/Makefile2 tests/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/flacu/Downloads/mime/CMakeFiles 0
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(CMAKE_COMMAND) -E cmake_progress_start /home/flacu/Downloads/MIMEstrip/ProxyPOP3/CMakeFiles /home/flacu/Downloads/MIMEstrip/ProxyPOP3/tests/CMakeFiles/progress.marks
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f CMakeFiles/Makefile2 tests/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/flacu/Downloads/MIMEstrip/ProxyPOP3/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f CMakeFiles/Makefile2 tests/clean
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f CMakeFiles/Makefile2 tests/clean
 .PHONY : clean
 
 # The main clean target
@@ -152,22 +152,22 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/flacu/Downloads/mime && $(MAKE) -f CMakeFiles/Makefile2 tests/preinstall
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f CMakeFiles/Makefile2 tests/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f CMakeFiles/Makefile2 tests/preinstall
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f CMakeFiles/Makefile2 tests/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/flacu/Downloads/mime && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
 tests/CMakeFiles/check_parser.dir/rule:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/check_parser.dir/rule
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/check_parser.dir/rule
 .PHONY : tests/CMakeFiles/check_parser.dir/rule
 
 # Convenience name for target.
@@ -177,12 +177,12 @@ check_parser: tests/CMakeFiles/check_parser.dir/rule
 
 # fast build rule for target.
 check_parser/fast:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f tests/CMakeFiles/check_parser.dir/build.make tests/CMakeFiles/check_parser.dir/build
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f tests/CMakeFiles/check_parser.dir/build.make tests/CMakeFiles/check_parser.dir/build
 .PHONY : check_parser/fast
 
 # Convenience name for target.
 tests/CMakeFiles/check_parser_utils.dir/rule:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/check_parser_utils.dir/rule
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/check_parser_utils.dir/rule
 .PHONY : tests/CMakeFiles/check_parser_utils.dir/rule
 
 # Convenience name for target.
@@ -192,12 +192,12 @@ check_parser_utils: tests/CMakeFiles/check_parser_utils.dir/rule
 
 # fast build rule for target.
 check_parser_utils/fast:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f tests/CMakeFiles/check_parser_utils.dir/build.make tests/CMakeFiles/check_parser_utils.dir/build
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f tests/CMakeFiles/check_parser_utils.dir/build.make tests/CMakeFiles/check_parser_utils.dir/build
 .PHONY : check_parser_utils/fast
 
 # Convenience name for target.
 tests/CMakeFiles/check_mime_msg.dir/rule:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/check_mime_msg.dir/rule
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/check_mime_msg.dir/rule
 .PHONY : tests/CMakeFiles/check_mime_msg.dir/rule
 
 # Convenience name for target.
@@ -207,7 +207,7 @@ check_mime_msg: tests/CMakeFiles/check_mime_msg.dir/rule
 
 # fast build rule for target.
 check_mime_msg/fast:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f tests/CMakeFiles/check_mime_msg.dir/build.make tests/CMakeFiles/check_mime_msg.dir/build
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f tests/CMakeFiles/check_mime_msg.dir/build.make tests/CMakeFiles/check_mime_msg.dir/build
 .PHONY : check_mime_msg/fast
 
 check_mime_msg.o: check_mime_msg.c.o
@@ -216,7 +216,7 @@ check_mime_msg.o: check_mime_msg.c.o
 
 # target to build an object file
 check_mime_msg.c.o:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f tests/CMakeFiles/check_mime_msg.dir/build.make tests/CMakeFiles/check_mime_msg.dir/check_mime_msg.c.o
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f tests/CMakeFiles/check_mime_msg.dir/build.make tests/CMakeFiles/check_mime_msg.dir/check_mime_msg.c.o
 .PHONY : check_mime_msg.c.o
 
 check_mime_msg.i: check_mime_msg.c.i
@@ -225,7 +225,7 @@ check_mime_msg.i: check_mime_msg.c.i
 
 # target to preprocess a source file
 check_mime_msg.c.i:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f tests/CMakeFiles/check_mime_msg.dir/build.make tests/CMakeFiles/check_mime_msg.dir/check_mime_msg.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f tests/CMakeFiles/check_mime_msg.dir/build.make tests/CMakeFiles/check_mime_msg.dir/check_mime_msg.c.i
 .PHONY : check_mime_msg.c.i
 
 check_mime_msg.s: check_mime_msg.c.s
@@ -234,7 +234,7 @@ check_mime_msg.s: check_mime_msg.c.s
 
 # target to generate assembly for a file
 check_mime_msg.c.s:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f tests/CMakeFiles/check_mime_msg.dir/build.make tests/CMakeFiles/check_mime_msg.dir/check_mime_msg.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f tests/CMakeFiles/check_mime_msg.dir/build.make tests/CMakeFiles/check_mime_msg.dir/check_mime_msg.c.s
 .PHONY : check_mime_msg.c.s
 
 check_parser.o: check_parser.c.o
@@ -243,7 +243,7 @@ check_parser.o: check_parser.c.o
 
 # target to build an object file
 check_parser.c.o:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f tests/CMakeFiles/check_parser.dir/build.make tests/CMakeFiles/check_parser.dir/check_parser.c.o
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f tests/CMakeFiles/check_parser.dir/build.make tests/CMakeFiles/check_parser.dir/check_parser.c.o
 .PHONY : check_parser.c.o
 
 check_parser.i: check_parser.c.i
@@ -252,7 +252,7 @@ check_parser.i: check_parser.c.i
 
 # target to preprocess a source file
 check_parser.c.i:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f tests/CMakeFiles/check_parser.dir/build.make tests/CMakeFiles/check_parser.dir/check_parser.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f tests/CMakeFiles/check_parser.dir/build.make tests/CMakeFiles/check_parser.dir/check_parser.c.i
 .PHONY : check_parser.c.i
 
 check_parser.s: check_parser.c.s
@@ -261,7 +261,7 @@ check_parser.s: check_parser.c.s
 
 # target to generate assembly for a file
 check_parser.c.s:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f tests/CMakeFiles/check_parser.dir/build.make tests/CMakeFiles/check_parser.dir/check_parser.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f tests/CMakeFiles/check_parser.dir/build.make tests/CMakeFiles/check_parser.dir/check_parser.c.s
 .PHONY : check_parser.c.s
 
 check_parser_utils.o: check_parser_utils.c.o
@@ -270,7 +270,7 @@ check_parser_utils.o: check_parser_utils.c.o
 
 # target to build an object file
 check_parser_utils.c.o:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f tests/CMakeFiles/check_parser_utils.dir/build.make tests/CMakeFiles/check_parser_utils.dir/check_parser_utils.c.o
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f tests/CMakeFiles/check_parser_utils.dir/build.make tests/CMakeFiles/check_parser_utils.dir/check_parser_utils.c.o
 .PHONY : check_parser_utils.c.o
 
 check_parser_utils.i: check_parser_utils.c.i
@@ -279,7 +279,7 @@ check_parser_utils.i: check_parser_utils.c.i
 
 # target to preprocess a source file
 check_parser_utils.c.i:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f tests/CMakeFiles/check_parser_utils.dir/build.make tests/CMakeFiles/check_parser_utils.dir/check_parser_utils.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f tests/CMakeFiles/check_parser_utils.dir/build.make tests/CMakeFiles/check_parser_utils.dir/check_parser_utils.c.i
 .PHONY : check_parser_utils.c.i
 
 check_parser_utils.s: check_parser_utils.c.s
@@ -288,7 +288,7 @@ check_parser_utils.s: check_parser_utils.c.s
 
 # target to generate assembly for a file
 check_parser_utils.c.s:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f tests/CMakeFiles/check_parser_utils.dir/build.make tests/CMakeFiles/check_parser_utils.dir/check_parser_utils.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f tests/CMakeFiles/check_parser_utils.dir/build.make tests/CMakeFiles/check_parser_utils.dir/check_parser_utils.c.s
 .PHONY : check_parser_utils.c.s
 
 # Help Target
@@ -327,6 +327,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/flacu/Downloads/mime && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

@@ -48,10 +48,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/flacu/Downloads/mime
+CMAKE_SOURCE_DIR = /home/flacu/Downloads/MIMEstrip/ProxyPOP3
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/flacu/Downloads/mime
+CMAKE_BINARY_DIR = /home/flacu/Downloads/MIMEstrip/ProxyPOP3
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -135,14 +135,14 @@ install/strip/fast: install/strip
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/flacu/Downloads/mime && $(CMAKE_COMMAND) -E cmake_progress_start /home/flacu/Downloads/mime/CMakeFiles /home/flacu/Downloads/mime/src/CMakeFiles/progress.marks
-	cd /home/flacu/Downloads/mime && $(MAKE) -f CMakeFiles/Makefile2 src/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/flacu/Downloads/mime/CMakeFiles 0
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(CMAKE_COMMAND) -E cmake_progress_start /home/flacu/Downloads/MIMEstrip/ProxyPOP3/CMakeFiles /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/CMakeFiles/progress.marks
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f CMakeFiles/Makefile2 src/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/flacu/Downloads/MIMEstrip/ProxyPOP3/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f CMakeFiles/Makefile2 src/clean
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f CMakeFiles/Makefile2 src/clean
 .PHONY : clean
 
 # The main clean target
@@ -152,22 +152,22 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/flacu/Downloads/mime && $(MAKE) -f CMakeFiles/Makefile2 src/preinstall
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f CMakeFiles/Makefile2 src/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f CMakeFiles/Makefile2 src/preinstall
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f CMakeFiles/Makefile2 src/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/flacu/Downloads/mime && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
 src/CMakeFiles/parser.dir/rule:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/parser.dir/rule
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/parser.dir/rule
 .PHONY : src/CMakeFiles/parser.dir/rule
 
 # Convenience name for target.
@@ -177,12 +177,12 @@ parser: src/CMakeFiles/parser.dir/rule
 
 # fast build rule for target.
 parser/fast:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/build
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/build
 .PHONY : parser/fast
 
 # Convenience name for target.
 src/CMakeFiles/stripmime.dir/rule:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/stripmime.dir/rule
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/stripmime.dir/rule
 .PHONY : src/CMakeFiles/stripmime.dir/rule
 
 # Convenience name for target.
@@ -192,8 +192,35 @@ stripmime: src/CMakeFiles/stripmime.dir/rule
 
 # fast build rule for target.
 stripmime/fast:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/stripmime.dir/build.make src/CMakeFiles/stripmime.dir/build
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/stripmime.dir/build.make src/CMakeFiles/stripmime.dir/build
 .PHONY : stripmime/fast
+
+MIMEtree.o: MIMEtree.c.o
+
+.PHONY : MIMEtree.o
+
+# target to build an object file
+MIMEtree.c.o:
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/MIMEtree.c.o
+.PHONY : MIMEtree.c.o
+
+MIMEtree.i: MIMEtree.c.i
+
+.PHONY : MIMEtree.i
+
+# target to preprocess a source file
+MIMEtree.c.i:
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/MIMEtree.c.i
+.PHONY : MIMEtree.c.i
+
+MIMEtree.s: MIMEtree.c.s
+
+.PHONY : MIMEtree.s
+
+# target to generate assembly for a file
+MIMEtree.c.s:
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/MIMEtree.c.s
+.PHONY : MIMEtree.c.s
 
 main.o: main.c.o
 
@@ -201,7 +228,7 @@ main.o: main.c.o
 
 # target to build an object file
 main.c.o:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/stripmime.dir/build.make src/CMakeFiles/stripmime.dir/main.c.o
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/stripmime.dir/build.make src/CMakeFiles/stripmime.dir/main.c.o
 .PHONY : main.c.o
 
 main.i: main.c.i
@@ -210,7 +237,7 @@ main.i: main.c.i
 
 # target to preprocess a source file
 main.c.i:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/stripmime.dir/build.make src/CMakeFiles/stripmime.dir/main.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/stripmime.dir/build.make src/CMakeFiles/stripmime.dir/main.c.i
 .PHONY : main.c.i
 
 main.s: main.c.s
@@ -219,7 +246,7 @@ main.s: main.c.s
 
 # target to generate assembly for a file
 main.c.s:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/stripmime.dir/build.make src/CMakeFiles/stripmime.dir/main.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/stripmime.dir/build.make src/CMakeFiles/stripmime.dir/main.c.s
 .PHONY : main.c.s
 
 mime_chars.o: mime_chars.c.o
@@ -228,7 +255,7 @@ mime_chars.o: mime_chars.c.o
 
 # target to build an object file
 mime_chars.c.o:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_chars.c.o
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_chars.c.o
 .PHONY : mime_chars.c.o
 
 mime_chars.i: mime_chars.c.i
@@ -237,7 +264,7 @@ mime_chars.i: mime_chars.c.i
 
 # target to preprocess a source file
 mime_chars.c.i:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_chars.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_chars.c.i
 .PHONY : mime_chars.c.i
 
 mime_chars.s: mime_chars.c.s
@@ -246,7 +273,7 @@ mime_chars.s: mime_chars.c.s
 
 # target to generate assembly for a file
 mime_chars.c.s:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_chars.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_chars.c.s
 .PHONY : mime_chars.c.s
 
 mime_msg.o: mime_msg.c.o
@@ -255,7 +282,7 @@ mime_msg.o: mime_msg.c.o
 
 # target to build an object file
 mime_msg.c.o:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_msg.c.o
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_msg.c.o
 .PHONY : mime_msg.c.o
 
 mime_msg.i: mime_msg.c.i
@@ -264,7 +291,7 @@ mime_msg.i: mime_msg.c.i
 
 # target to preprocess a source file
 mime_msg.c.i:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_msg.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_msg.c.i
 .PHONY : mime_msg.c.i
 
 mime_msg.s: mime_msg.c.s
@@ -273,7 +300,7 @@ mime_msg.s: mime_msg.c.s
 
 # target to generate assembly for a file
 mime_msg.c.s:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_msg.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_msg.c.s
 .PHONY : mime_msg.c.s
 
 mime_type.o: mime_type.c.o
@@ -282,7 +309,7 @@ mime_type.o: mime_type.c.o
 
 # target to build an object file
 mime_type.c.o:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_type.c.o
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_type.c.o
 .PHONY : mime_type.c.o
 
 mime_type.i: mime_type.c.i
@@ -291,7 +318,7 @@ mime_type.i: mime_type.c.i
 
 # target to preprocess a source file
 mime_type.c.i:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_type.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_type.c.i
 .PHONY : mime_type.c.i
 
 mime_type.s: mime_type.c.s
@@ -300,7 +327,7 @@ mime_type.s: mime_type.c.s
 
 # target to generate assembly for a file
 mime_type.c.s:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_type.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/mime_type.c.s
 .PHONY : mime_type.c.s
 
 parser.o: parser.c.o
@@ -309,7 +336,7 @@ parser.o: parser.c.o
 
 # target to build an object file
 parser.c.o:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/parser.c.o
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/parser.c.o
 .PHONY : parser.c.o
 
 parser.i: parser.c.i
@@ -318,7 +345,7 @@ parser.i: parser.c.i
 
 # target to preprocess a source file
 parser.c.i:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/parser.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/parser.c.i
 .PHONY : parser.c.i
 
 parser.s: parser.c.s
@@ -327,7 +354,7 @@ parser.s: parser.c.s
 
 # target to generate assembly for a file
 parser.c.s:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/parser.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/parser.c.s
 .PHONY : parser.c.s
 
 parser_utils.o: parser_utils.c.o
@@ -336,7 +363,7 @@ parser_utils.o: parser_utils.c.o
 
 # target to build an object file
 parser_utils.c.o:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/parser_utils.c.o
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/parser_utils.c.o
 .PHONY : parser_utils.c.o
 
 parser_utils.i: parser_utils.c.i
@@ -345,7 +372,7 @@ parser_utils.i: parser_utils.c.i
 
 # target to preprocess a source file
 parser_utils.c.i:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/parser_utils.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/parser_utils.c.i
 .PHONY : parser_utils.c.i
 
 parser_utils.s: parser_utils.c.s
@@ -354,7 +381,7 @@ parser_utils.s: parser_utils.c.s
 
 # target to generate assembly for a file
 parser_utils.c.s:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/parser_utils.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/parser_utils.c.s
 .PHONY : parser_utils.c.s
 
 pop3_multi.o: pop3_multi.c.o
@@ -363,7 +390,7 @@ pop3_multi.o: pop3_multi.c.o
 
 # target to build an object file
 pop3_multi.c.o:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/pop3_multi.c.o
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/pop3_multi.c.o
 .PHONY : pop3_multi.c.o
 
 pop3_multi.i: pop3_multi.c.i
@@ -372,7 +399,7 @@ pop3_multi.i: pop3_multi.c.i
 
 # target to preprocess a source file
 pop3_multi.c.i:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/pop3_multi.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/pop3_multi.c.i
 .PHONY : pop3_multi.c.i
 
 pop3_multi.s: pop3_multi.c.s
@@ -381,7 +408,7 @@ pop3_multi.s: pop3_multi.c.s
 
 # target to generate assembly for a file
 pop3_multi.c.s:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/pop3_multi.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/pop3_multi.c.s
 .PHONY : pop3_multi.c.s
 
 stripmime.o: stripmime.c.o
@@ -390,7 +417,7 @@ stripmime.o: stripmime.c.o
 
 # target to build an object file
 stripmime.c.o:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/stripmime.c.o
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/stripmime.c.o
 .PHONY : stripmime.c.o
 
 stripmime.i: stripmime.c.i
@@ -399,7 +426,7 @@ stripmime.i: stripmime.c.i
 
 # target to preprocess a source file
 stripmime.c.i:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/stripmime.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/stripmime.c.i
 .PHONY : stripmime.c.i
 
 stripmime.s: stripmime.c.s
@@ -408,7 +435,7 @@ stripmime.s: stripmime.c.s
 
 # target to generate assembly for a file
 stripmime.c.s:
-	cd /home/flacu/Downloads/mime && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/stripmime.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/stripmime.c.s
 .PHONY : stripmime.c.s
 
 # Help Target
@@ -426,6 +453,9 @@ help:
 	@echo "... stripmime"
 	@echo "... install/local"
 	@echo "... install/strip"
+	@echo "... MIMEtree.o"
+	@echo "... MIMEtree.i"
+	@echo "... MIMEtree.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
@@ -461,6 +491,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/flacu/Downloads/mime && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

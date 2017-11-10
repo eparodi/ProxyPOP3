@@ -6,37 +6,57 @@
 
 #IncludeRegexTransform: 
 
-/home/flacu/Downloads/mime/src/mime_chars.c
-mime_chars.h
-/home/flacu/Downloads/mime/src/mime_chars.h
-
-/home/flacu/Downloads/mime/src/mime_chars.h
-
-/home/flacu/Downloads/mime/src/mime_msg.c
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/MIMEtree.c
+stdlib.h
+-
+MIMEtree.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/MIMEtree.h
 parser.h
-/home/flacu/Downloads/mime/src/parser.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser.h
+stdio.h
+-
+string.h
+-
+parser_utils.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser_utils.h
 mime_chars.h
-/home/flacu/Downloads/mime/src/mime_chars.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_chars.h
+
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/MIMEtree.h
+stdbool.h
+-
+
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_chars.c
+mime_chars.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_chars.h
+
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_chars.h
+
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_msg.c
+parser.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser.h
+mime_chars.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_chars.h
 mime_msg.h
-/home/flacu/Downloads/mime/src/mime_msg.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_msg.h
 
-/home/flacu/Downloads/mime/src/mime_msg.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_msg.h
 parser.h
-/home/flacu/Downloads/mime/src/parser.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser.h
 
-/home/flacu/Downloads/mime/src/mime_type.c
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_type.c
 parser.h
-/home/flacu/Downloads/mime/src/parser.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser.h
 mime_chars.h
-/home/flacu/Downloads/mime/src/mime_chars.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_chars.h
 mime_type.h
-/home/flacu/Downloads/mime/src/mime_type.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_type.h
 
-/home/flacu/Downloads/mime/src/mime_type.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_type.h
 parser.h
-/home/flacu/Downloads/mime/src/parser.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser.h
 
-/home/flacu/Downloads/mime/src/parser.c
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser.c
 stdbool.h
 -
 stdlib.h
@@ -46,15 +66,15 @@ string.h
 assert.h
 -
 parser.h
-/home/flacu/Downloads/mime/src/parser.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser.h
 
-/home/flacu/Downloads/mime/src/parser.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser.h
 stdint.h
 -
 stddef.h
 -
 
-/home/flacu/Downloads/mime/src/parser_utils.c
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser_utils.c
 stdlib.h
 -
 string.h
@@ -62,21 +82,21 @@ string.h
 ctype.h
 -
 parser_utils.h
-/home/flacu/Downloads/mime/src/parser_utils.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser_utils.h
 
-/home/flacu/Downloads/mime/src/parser_utils.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser_utils.h
 parser.h
-/home/flacu/Downloads/mime/src/parser.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser.h
 
-/home/flacu/Downloads/mime/src/pop3_multi.c
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/pop3_multi.c
 pop3_multi.h
-/home/flacu/Downloads/mime/src/pop3_multi.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/pop3_multi.h
 
-/home/flacu/Downloads/mime/src/pop3_multi.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/pop3_multi.h
 parser.h
-/home/flacu/Downloads/mime/src/parser.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser.h
 
-/home/flacu/Downloads/mime/src/stripmime.c
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/stripmime.c
 stdio.h
 -
 unistd.h
@@ -86,13 +106,13 @@ fcntl.h
 stdbool.h
 -
 mime_type.h
-/home/flacu/Downloads/mime/src/mime_type.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_type.h
 parser_utils.h
-/home/flacu/Downloads/mime/src/parser_utils.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser_utils.h
 pop3_multi.h
-/home/flacu/Downloads/mime/src/pop3_multi.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/pop3_multi.h
 mime_chars.h
-/home/flacu/Downloads/mime/src/mime_chars.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_chars.h
 mime_msg.h
-/home/flacu/Downloads/mime/src/mime_msg.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_msg.h
 

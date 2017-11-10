@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_C
-  "/home/flacu/Downloads/mime/tests/check_parser_utils.c" "/home/flacu/Downloads/mime/tests/CMakeFiles/check_parser_utils.dir/check_parser_utils.c.o"
+  "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/tests/check_parser_utils.c" "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/tests/CMakeFiles/check_parser_utils.dir/check_parser_utils.c.o"
   )
 set(CMAKE_C_COMPILER_ID "GNU")
 
@@ -21,7 +21,7 @@ set(CMAKE_C_TARGET_INCLUDE_PATH
 
 # Targets to which this target links.
 set(CMAKE_TARGET_LINKED_INFO_FILES
-  "/home/flacu/Downloads/mime/src/CMakeFiles/parser.dir/DependInfo.cmake"
+  "/home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/CMakeFiles/parser.dir/DependInfo.cmake"
   )
 
 # Fortran module output directory.

@@ -7,6 +7,7 @@ set(LIB_SOURCES
   parser_utils.c
   pop3_multi.c
   stripmime.c
+  MIMEtree.c
 )
 
 set(MAIN_SOURCES
@@ -22,6 +23,7 @@ set(HEADERS
   parser_utils.h
   pop3_multi.h
   stripmime.h
+  MIMEtree.h
 )
 
 add_library(parser STATIC ${LIB_SOURCES} ${HEADERS})

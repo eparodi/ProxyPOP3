@@ -182,7 +182,7 @@ stripmime(int argc, const char **argv) {
         .multi        = parser_init(no_class, pop3_multi_parser()),
         .msg          = parser_init(init_char_class(), mime_message_parser()),
         .ctype_header = parser_init(no_class, &media_header_def),
-        .filtered_msg = parser_init(no_class, mime_type_parser()),
+        .filtered_msg = parser_init(init_char_class(), mime_type_parser()),
     };
 
     uint8_t data[4096];

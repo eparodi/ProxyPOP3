@@ -13,7 +13,7 @@ int main(int argc, char const *argv[]) {
 
 	char * filter_medias = getenv(FILTER_MEDIAS);
 
-	Tree* tree = tree_init();  
+	struct Tree* tree = tree_init();  
 
 	if (filter_medias == NULL) {
 		printf("ERROR\n");
@@ -69,9 +69,9 @@ int main(int argc, char const *argv[]) {
 		}
 		strcpy(subtype, mime);
 
-		add(tree, type, subtyoe); // TODO (facu)
+		addNode(tree, type, subtype); // TODO (facu)
 
-		printf("'%s'/'%s'\n", type, subtype);
+		//printf("'%s'/'%s'\n", type, subtype);
     
     	free(aux);
 		token = strtok_r(NULL, comma, &ctx1);

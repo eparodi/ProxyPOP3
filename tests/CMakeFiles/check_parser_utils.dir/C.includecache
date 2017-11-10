@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/flacu/Downloads/mime/tests/check_parser_utils.c
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/tests/check_parser_utils.c
 stdio.h
 -
 stdlib.h
@@ -14,7 +14,7 @@ stdlib.h
 check.h
 -
 parser_utils.h
-/home/flacu/Downloads/mime/tests/parser_utils.h
+/home/flacu/Downloads/MIMEstrip/ProxyPOP3/tests/parser_utils.h
 
 tests/../src/parser.h
 stdint.h

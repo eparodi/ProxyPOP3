@@ -1,9 +1,31 @@
+#ifndef MIMETREE_H_
+#define MIMETREE_H_
+
+#include <stdbool.h>
+
+struct TreeNode{
+	struct parser* parser;
+	struct TreeNode *next;
+	struct TreeNode *children;
+	const char* name;
+	bool match;
+	bool wildcard;
+};
+
+struct Tree{
+	struct TreeNode* first;
+};
+
 struct MIMEtype{
 	char* type;
 	char* subtype;
-}
+};
 
 
-struct Tree* tree_init();
 
-void add(struct Tree* tree; struct MIMEtype* mime);
+struct Tree* tree_init(void);
+
+void addNode(struct Tree* tree, char* type,char* subtype);
+
+
+#endif

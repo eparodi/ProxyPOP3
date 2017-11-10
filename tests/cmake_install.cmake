@@ -1,4 +1,4 @@
-# Install script for directory: /home/flacu/Downloads/mime/tests
+# Install script for directory: /home/flacu/Downloads/MIMEstrip/ProxyPOP3/tests
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

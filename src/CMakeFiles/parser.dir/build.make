@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/flacu/Downloads/mime
+CMAKE_SOURCE_DIR = /home/flacu/Downloads/MIMEstrip/ProxyPOP3
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/flacu/Downloads/mime
+CMAKE_BINARY_DIR = /home/flacu/Downloads/MIMEstrip/ProxyPOP3
 
 # Include any dependencies generated for this target.
 include src/CMakeFiles/parser.dir/depend.make
@@ -59,16 +59,16 @@ include src/CMakeFiles/parser.dir/flags.make
 
 src/CMakeFiles/parser.dir/parser.c.o: src/CMakeFiles/parser.dir/flags.make
 src/CMakeFiles/parser.dir/parser.c.o: src/parser.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/mime/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building C object src/CMakeFiles/parser.dir/parser.c.o"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/parser.c.o   -c /home/flacu/Downloads/mime/src/parser.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/MIMEstrip/ProxyPOP3/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building C object src/CMakeFiles/parser.dir/parser.c.o"
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/parser.c.o   -c /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser.c
 
 src/CMakeFiles/parser.dir/parser.c.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/parser.dir/parser.c.i"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/mime/src/parser.c > CMakeFiles/parser.dir/parser.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser.c > CMakeFiles/parser.dir/parser.c.i
 
 src/CMakeFiles/parser.dir/parser.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/parser.dir/parser.c.s"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/mime/src/parser.c -o CMakeFiles/parser.dir/parser.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser.c -o CMakeFiles/parser.dir/parser.c.s
 
 src/CMakeFiles/parser.dir/parser.c.o.requires:
 
@@ -83,16 +83,16 @@ src/CMakeFiles/parser.dir/parser.c.o.provides.build: src/CMakeFiles/parser.dir/p
 
 src/CMakeFiles/parser.dir/mime_chars.c.o: src/CMakeFiles/parser.dir/flags.make
 src/CMakeFiles/parser.dir/mime_chars.c.o: src/mime_chars.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/mime/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building C object src/CMakeFiles/parser.dir/mime_chars.c.o"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/mime_chars.c.o   -c /home/flacu/Downloads/mime/src/mime_chars.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/MIMEstrip/ProxyPOP3/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building C object src/CMakeFiles/parser.dir/mime_chars.c.o"
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/mime_chars.c.o   -c /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_chars.c
 
 src/CMakeFiles/parser.dir/mime_chars.c.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/parser.dir/mime_chars.c.i"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/mime/src/mime_chars.c > CMakeFiles/parser.dir/mime_chars.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_chars.c > CMakeFiles/parser.dir/mime_chars.c.i
 
 src/CMakeFiles/parser.dir/mime_chars.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/parser.dir/mime_chars.c.s"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/mime/src/mime_chars.c -o CMakeFiles/parser.dir/mime_chars.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_chars.c -o CMakeFiles/parser.dir/mime_chars.c.s
 
 src/CMakeFiles/parser.dir/mime_chars.c.o.requires:
 
@@ -107,16 +107,16 @@ src/CMakeFiles/parser.dir/mime_chars.c.o.provides.build: src/CMakeFiles/parser.d
 
 src/CMakeFiles/parser.dir/mime_msg.c.o: src/CMakeFiles/parser.dir/flags.make
 src/CMakeFiles/parser.dir/mime_msg.c.o: src/mime_msg.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/mime/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building C object src/CMakeFiles/parser.dir/mime_msg.c.o"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/mime_msg.c.o   -c /home/flacu/Downloads/mime/src/mime_msg.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/MIMEstrip/ProxyPOP3/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building C object src/CMakeFiles/parser.dir/mime_msg.c.o"
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/mime_msg.c.o   -c /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_msg.c
 
 src/CMakeFiles/parser.dir/mime_msg.c.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/parser.dir/mime_msg.c.i"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/mime/src/mime_msg.c > CMakeFiles/parser.dir/mime_msg.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_msg.c > CMakeFiles/parser.dir/mime_msg.c.i
 
 src/CMakeFiles/parser.dir/mime_msg.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/parser.dir/mime_msg.c.s"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/mime/src/mime_msg.c -o CMakeFiles/parser.dir/mime_msg.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_msg.c -o CMakeFiles/parser.dir/mime_msg.c.s
 
 src/CMakeFiles/parser.dir/mime_msg.c.o.requires:
 
@@ -131,16 +131,16 @@ src/CMakeFiles/parser.dir/mime_msg.c.o.provides.build: src/CMakeFiles/parser.dir
 
 src/CMakeFiles/parser.dir/mime_type.c.o: src/CMakeFiles/parser.dir/flags.make
 src/CMakeFiles/parser.dir/mime_type.c.o: src/mime_type.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/mime/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building C object src/CMakeFiles/parser.dir/mime_type.c.o"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/mime_type.c.o   -c /home/flacu/Downloads/mime/src/mime_type.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/MIMEstrip/ProxyPOP3/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building C object src/CMakeFiles/parser.dir/mime_type.c.o"
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/mime_type.c.o   -c /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_type.c
 
 src/CMakeFiles/parser.dir/mime_type.c.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/parser.dir/mime_type.c.i"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/mime/src/mime_type.c > CMakeFiles/parser.dir/mime_type.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_type.c > CMakeFiles/parser.dir/mime_type.c.i
 
 src/CMakeFiles/parser.dir/mime_type.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/parser.dir/mime_type.c.s"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/mime/src/mime_type.c -o CMakeFiles/parser.dir/mime_type.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/mime_type.c -o CMakeFiles/parser.dir/mime_type.c.s
 
 src/CMakeFiles/parser.dir/mime_type.c.o.requires:
 
@@ -155,16 +155,16 @@ src/CMakeFiles/parser.dir/mime_type.c.o.provides.build: src/CMakeFiles/parser.di
 
 src/CMakeFiles/parser.dir/parser_utils.c.o: src/CMakeFiles/parser.dir/flags.make
 src/CMakeFiles/parser.dir/parser_utils.c.o: src/parser_utils.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/mime/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building C object src/CMakeFiles/parser.dir/parser_utils.c.o"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/parser_utils.c.o   -c /home/flacu/Downloads/mime/src/parser_utils.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/MIMEstrip/ProxyPOP3/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building C object src/CMakeFiles/parser.dir/parser_utils.c.o"
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/parser_utils.c.o   -c /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser_utils.c
 
 src/CMakeFiles/parser.dir/parser_utils.c.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/parser.dir/parser_utils.c.i"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/mime/src/parser_utils.c > CMakeFiles/parser.dir/parser_utils.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser_utils.c > CMakeFiles/parser.dir/parser_utils.c.i
 
 src/CMakeFiles/parser.dir/parser_utils.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/parser.dir/parser_utils.c.s"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/mime/src/parser_utils.c -o CMakeFiles/parser.dir/parser_utils.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/parser_utils.c -o CMakeFiles/parser.dir/parser_utils.c.s
 
 src/CMakeFiles/parser.dir/parser_utils.c.o.requires:
 
@@ -179,16 +179,16 @@ src/CMakeFiles/parser.dir/parser_utils.c.o.provides.build: src/CMakeFiles/parser
 
 src/CMakeFiles/parser.dir/pop3_multi.c.o: src/CMakeFiles/parser.dir/flags.make
 src/CMakeFiles/parser.dir/pop3_multi.c.o: src/pop3_multi.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/mime/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building C object src/CMakeFiles/parser.dir/pop3_multi.c.o"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/pop3_multi.c.o   -c /home/flacu/Downloads/mime/src/pop3_multi.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/MIMEstrip/ProxyPOP3/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building C object src/CMakeFiles/parser.dir/pop3_multi.c.o"
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/pop3_multi.c.o   -c /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/pop3_multi.c
 
 src/CMakeFiles/parser.dir/pop3_multi.c.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/parser.dir/pop3_multi.c.i"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/mime/src/pop3_multi.c > CMakeFiles/parser.dir/pop3_multi.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/pop3_multi.c > CMakeFiles/parser.dir/pop3_multi.c.i
 
 src/CMakeFiles/parser.dir/pop3_multi.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/parser.dir/pop3_multi.c.s"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/mime/src/pop3_multi.c -o CMakeFiles/parser.dir/pop3_multi.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/pop3_multi.c -o CMakeFiles/parser.dir/pop3_multi.c.s
 
 src/CMakeFiles/parser.dir/pop3_multi.c.o.requires:
 
@@ -203,16 +203,16 @@ src/CMakeFiles/parser.dir/pop3_multi.c.o.provides.build: src/CMakeFiles/parser.d
 
 src/CMakeFiles/parser.dir/stripmime.c.o: src/CMakeFiles/parser.dir/flags.make
 src/CMakeFiles/parser.dir/stripmime.c.o: src/stripmime.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/mime/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building C object src/CMakeFiles/parser.dir/stripmime.c.o"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/stripmime.c.o   -c /home/flacu/Downloads/mime/src/stripmime.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/MIMEstrip/ProxyPOP3/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building C object src/CMakeFiles/parser.dir/stripmime.c.o"
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/stripmime.c.o   -c /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/stripmime.c
 
 src/CMakeFiles/parser.dir/stripmime.c.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/parser.dir/stripmime.c.i"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/mime/src/stripmime.c > CMakeFiles/parser.dir/stripmime.c.i
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/stripmime.c > CMakeFiles/parser.dir/stripmime.c.i
 
 src/CMakeFiles/parser.dir/stripmime.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/parser.dir/stripmime.c.s"
-	cd /home/flacu/Downloads/mime/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/mime/src/stripmime.c -o CMakeFiles/parser.dir/stripmime.c.s
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/stripmime.c -o CMakeFiles/parser.dir/stripmime.c.s
 
 src/CMakeFiles/parser.dir/stripmime.c.o.requires:
 
@@ -225,6 +225,30 @@ src/CMakeFiles/parser.dir/stripmime.c.o.provides: src/CMakeFiles/parser.dir/stri
 src/CMakeFiles/parser.dir/stripmime.c.o.provides.build: src/CMakeFiles/parser.dir/stripmime.c.o
 
 
+src/CMakeFiles/parser.dir/MIMEtree.c.o: src/CMakeFiles/parser.dir/flags.make
+src/CMakeFiles/parser.dir/MIMEtree.c.o: src/MIMEtree.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/flacu/Downloads/MIMEstrip/ProxyPOP3/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building C object src/CMakeFiles/parser.dir/MIMEtree.c.o"
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/parser.dir/MIMEtree.c.o   -c /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/MIMEtree.c
+
+src/CMakeFiles/parser.dir/MIMEtree.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/parser.dir/MIMEtree.c.i"
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/MIMEtree.c > CMakeFiles/parser.dir/MIMEtree.c.i
+
+src/CMakeFiles/parser.dir/MIMEtree.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/parser.dir/MIMEtree.c.s"
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && /usr/bin/cc  $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/MIMEtree.c -o CMakeFiles/parser.dir/MIMEtree.c.s
+
+src/CMakeFiles/parser.dir/MIMEtree.c.o.requires:
+
+.PHONY : src/CMakeFiles/parser.dir/MIMEtree.c.o.requires
+
+src/CMakeFiles/parser.dir/MIMEtree.c.o.provides: src/CMakeFiles/parser.dir/MIMEtree.c.o.requires
+	$(MAKE) -f src/CMakeFiles/parser.dir/build.make src/CMakeFiles/parser.dir/MIMEtree.c.o.provides.build
+.PHONY : src/CMakeFiles/parser.dir/MIMEtree.c.o.provides
+
+src/CMakeFiles/parser.dir/MIMEtree.c.o.provides.build: src/CMakeFiles/parser.dir/MIMEtree.c.o
+
+
 # Object files for target parser
 parser_OBJECTS = \
 "CMakeFiles/parser.dir/parser.c.o" \
@@ -233,7 +257,8 @@ parser_OBJECTS = \
 "CMakeFiles/parser.dir/mime_type.c.o" \
 "CMakeFiles/parser.dir/parser_utils.c.o" \
 "CMakeFiles/parser.dir/pop3_multi.c.o" \
-"CMakeFiles/parser.dir/stripmime.c.o"
+"CMakeFiles/parser.dir/stripmime.c.o" \
+"CMakeFiles/parser.dir/MIMEtree.c.o"
 
 # External object files for target parser
 parser_EXTERNAL_OBJECTS =
@@ -245,11 +270,12 @@ src/libparser.a: src/CMakeFiles/parser.dir/mime_type.c.o
 src/libparser.a: src/CMakeFiles/parser.dir/parser_utils.c.o
 src/libparser.a: src/CMakeFiles/parser.dir/pop3_multi.c.o
 src/libparser.a: src/CMakeFiles/parser.dir/stripmime.c.o
+src/libparser.a: src/CMakeFiles/parser.dir/MIMEtree.c.o
 src/libparser.a: src/CMakeFiles/parser.dir/build.make
 src/libparser.a: src/CMakeFiles/parser.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/flacu/Downloads/mime/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking C static library libparser.a"
-	cd /home/flacu/Downloads/mime/src && $(CMAKE_COMMAND) -P CMakeFiles/parser.dir/cmake_clean_target.cmake
-	cd /home/flacu/Downloads/mime/src && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/parser.dir/link.txt --verbose=$(VERBOSE)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/flacu/Downloads/MIMEstrip/ProxyPOP3/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Linking C static library libparser.a"
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && $(CMAKE_COMMAND) -P CMakeFiles/parser.dir/cmake_clean_target.cmake
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/parser.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
 src/CMakeFiles/parser.dir/build: src/libparser.a
@@ -263,14 +289,15 @@ src/CMakeFiles/parser.dir/requires: src/CMakeFiles/parser.dir/mime_type.c.o.requ
 src/CMakeFiles/parser.dir/requires: src/CMakeFiles/parser.dir/parser_utils.c.o.requires
 src/CMakeFiles/parser.dir/requires: src/CMakeFiles/parser.dir/pop3_multi.c.o.requires
 src/CMakeFiles/parser.dir/requires: src/CMakeFiles/parser.dir/stripmime.c.o.requires
+src/CMakeFiles/parser.dir/requires: src/CMakeFiles/parser.dir/MIMEtree.c.o.requires
 
 .PHONY : src/CMakeFiles/parser.dir/requires
 
 src/CMakeFiles/parser.dir/clean:
-	cd /home/flacu/Downloads/mime/src && $(CMAKE_COMMAND) -P CMakeFiles/parser.dir/cmake_clean.cmake
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src && $(CMAKE_COMMAND) -P CMakeFiles/parser.dir/cmake_clean.cmake
 .PHONY : src/CMakeFiles/parser.dir/clean
 
 src/CMakeFiles/parser.dir/depend:
-	cd /home/flacu/Downloads/mime && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/flacu/Downloads/mime /home/flacu/Downloads/mime/src /home/flacu/Downloads/mime /home/flacu/Downloads/mime/src /home/flacu/Downloads/mime/src/CMakeFiles/parser.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/flacu/Downloads/MIMEstrip/ProxyPOP3 && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/flacu/Downloads/MIMEstrip/ProxyPOP3 /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src /home/flacu/Downloads/MIMEstrip/ProxyPOP3 /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src /home/flacu/Downloads/MIMEstrip/ProxyPOP3/src/CMakeFiles/parser.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : src/CMakeFiles/parser.dir/depend
 

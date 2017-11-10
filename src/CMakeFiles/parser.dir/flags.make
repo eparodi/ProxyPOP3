@@ -6,5 +6,5 @@ C_FLAGS =  -pthread -g   -std=gnu99
 
 C_DEFINES = -DHAVE_CONFIG_H
 
-C_INCLUDES = -I/home/flacu/Downloads/mime 
+C_INCLUDES = -I/home/flacu/Downloads/MIMEstrip/ProxyPOP3 
 
