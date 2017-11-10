@@ -7,10 +7,36 @@
 #include <netinet/sctp.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <netdb.h>
 #include "pop3ctl.h"
 #define MAX_BUFFER 1024
 
 options ctl_parameters;
+
+void resolv_addr() {
+
+    ctl_parameters->managementaddrinfo = 0;
+
+    char mgmt_buff[7];
+    snprintf(buff, sizeof(mgmt_buff), "%hu",
+             ctl_parameters->management_port);
+
+
+    struct addrinfo hints2 = {
+            .ai_family    = AF_UNSPEC,    /* Allow IPv4 or IPv6 */
+            .ai_socktype  = SOCK_STREAM,  /* Datagram socket */
+            .ai_flags     = AI_PASSIVE,   /* For wildcard IP address */
+            .ai_protocol  = 0,            /* Any protocol */
+            .ai_canonname = NULL,
+            .ai_addr      = NULL,
+            .ai_next      = NULL,
+    };
+
+    if (0 != getaddrinfo(ctl_parameters->management_address, mgmt_buff, &hints2,
+                         &ctl_parameters->managementaddrinfo)){
+        sprintf(stderr,"Domain name resolution error\n");
+    }
+}
 
 options parse_ctl_options(int argc, char **argv) {
 

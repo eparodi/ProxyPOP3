@@ -28,24 +28,27 @@ void print_help(){
  * Prints the proxy version
  */
 void print_version() {
-    printf("POP3 Proxy 1.0");
+    printf("POP3 Proxy v%s", parameters->version);
 }
 
-void resolv_addr();
+void
+resolv_addr(char *address, uint16_t port, struct addrinfo **addrinfo);
 
 options parse_options(int argc, char **argv) {
 
     /* Initialize default values */
-    parameters = malloc(sizeof(*parameters));
-    parameters->port = 1110;
-    parameters->error_file = "/dev/null";
-    parameters->management_address = "127.0.0.1";
-    parameters->management_port = 9090;
-    parameters->listen_address = "0.0.0.0";
-    parameters->replacement_msg = "Parte reemplazada.";
-    parameters->origin_port = 110;
-    parameters->filter_command = "echo hola"; //TODO: pasarlo a Null
-    parameters->version = "0.0";
+    parameters                      = malloc(sizeof(*parameters));
+    parameters->port                = 1110;
+    parameters->error_file          = "/dev/null";
+    parameters->management_address  = "127.0.0.1";
+    parameters->management_port     = 9090;
+    parameters->listen_address      = "0.0.0.0";
+    parameters->replacement_msg     = "Parte reemplazada.";
+    parameters->origin_port         = 110;
+    parameters->filter_command      = "echo hola"; //TODO: pasarlo a Null
+    parameters->version             = "0.0";
+    parameters->listenadddrinfo     = 0;
+    parameters->managementaddrinfo  = 0;
 
     char * type = malloc(10*sizeof(char));
     char * subtype = malloc(10*sizeof(char));
@@ -149,16 +152,16 @@ options parse_options(int argc, char **argv) {
         exit(1);
     }
 
-    resolv_addr();
+    resolv_addr(parameters->listen_address, parameters->port,
+                &parameters->listenadddrinfo);
+    resolv_addr(parameters->management_address, parameters->management_port,
+                &parameters->managementaddrinfo);
 
     return parameters;
 }
 
-void resolv_addr() {
-
-    parameters->managementaddrinfo = 0;
-    parameters->listenadddrinfo = 0;
-
+void
+resolv_addr(char *address, uint16_t port, struct addrinfo ** addrinfo) {
 
     struct addrinfo hints = {
             .ai_family    = AF_UNSPEC,    /* Allow IPv4 or IPv6 */
@@ -172,29 +175,9 @@ void resolv_addr() {
 
     char buff[7];
     snprintf(buff, sizeof(buff), "%hu",
-             parameters->port);
-    if (0 != getaddrinfo(parameters->listen_address, buff, &hints,
-                         &parameters->listenadddrinfo)){
-        sprintf(stderr,"Domain name resolution error\n");
-    }
-
-    char mgmt_buff[7];
-    snprintf(buff, sizeof(mgmt_buff), "%hu",
-             parameters->management_port);
-
-
-    struct addrinfo hints2 = {
-            .ai_family    = AF_UNSPEC,    /* Allow IPv4 or IPv6 */
-            .ai_socktype  = SOCK_STREAM,  /* Datagram socket */
-            .ai_flags     = AI_PASSIVE,   /* For wildcard IP address */
-            .ai_protocol  = 0,            /* Any protocol */
-            .ai_canonname = NULL,
-            .ai_addr      = NULL,
-            .ai_next      = NULL,
-    };
-
-    if (0 != getaddrinfo(parameters->management_address, mgmt_buff, &hints2,
-                         &parameters->managementaddrinfo)){
+             port);
+    if (0 != getaddrinfo(address, buff, &hints,
+                         addrinfo)){
         sprintf(stderr,"Domain name resolution error\n");
     }
 }
