@@ -11,17 +11,15 @@ enum pop3_session_state {
     POP3_DONE,
 };
 
-//TODO agregar intentos de comandos invalidos (3 como dovecot)
 // representa una sesion pop3
 struct pop3_session {
-    // long maxima: 512 bytes segun rfc de pop3
+    // long maxima: 40 bytes segun rfc de pop3
     char *user;
     char *password;
 
     enum pop3_session_state state;
     unsigned concurrent_invalid_commands;
 
-    // podria ser una variable global?? -> no porque me pueden cambiar el origin server?
     bool pipelining;
 };
 

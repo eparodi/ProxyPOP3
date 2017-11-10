@@ -367,12 +367,13 @@ selector_status set_interests(fd_selector s, int client_fd, int origin_fd, enum 
     return status;
 }
 
-//TODO mergear con CONNECTING
 ////////////////////////////////////////////////////////////////////////////////
 // ORIGIN_RESOLV
 ////////////////////////////////////////////////////////////////////////////////
 
 static void * origin_resolv_blocking(void *data);
+
+static unsigned origin_connect(struct selector_key *key);
 
 unsigned
 origin_resolv(struct selector_key *key){
@@ -460,7 +461,63 @@ origin_resolv_done(struct selector_key *key) {
         return ERROR;
     }
 
+    return origin_connect(key);
+}
+
+static unsigned
+origin_connect(struct selector_key *key) {
+
+    int sock = socket(ATTACHMENT(key)->origin_domain, SOCK_STREAM, IPPROTO_TCP);
+    ATTACHMENT(key)->origin_fd = sock;
+
+    printf("server socket: %d\n", sock);
+
+    if (sock < 0) {
+        perror("socket() failed");
+        return ERROR;
+    }
+
+    if (selector_fd_set_nio(sock) == -1) {
+        goto error;
+    }
+
+    /* Establish the connection to the origin server */
+    if (-1 == connect(sock,
+                      (const struct sockaddr *)&ATTACHMENT(key)->origin_addr,
+                      ATTACHMENT(key)->origin_addr_len)) {
+        if(errno == EINPROGRESS) {
+            // es esperable,  tenemos que esperar a la conexión
+
+            // dejamos de pollear el socket del cliente
+            selector_status st = selector_set_interest_key(key, OP_NOOP);
+            if(SELECTOR_SUCCESS != st) {
+                goto error;
+            }
+
+            // esperamos la conexion en el nuevo socket
+            st = selector_register(key->s, sock, &pop3_handler,
+                                   OP_WRITE, key->data);
+            if(SELECTOR_SUCCESS != st) {
+                goto error;
+            }
+            ATTACHMENT(key)->references += 1;
+        } else {
+            goto error;
+        }
+    } else {
+        // estamos conectados sin esperar... no parece posible
+        // saltaríamos directamente a COPY
+        abort();
+    }
+
     return CONNECTING;
+
+    error:
+    if (sock != -1) {
+        close(sock);
+        ATTACHMENT(key)->origin_fd = -1;
+    }
+    return ERROR;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -470,26 +527,47 @@ origin_resolv_done(struct selector_key *key) {
 void log_connection(bool opened, const struct sockaddr* clientaddr,
             const struct sockaddr* originaddr);
 
-int origin_connect(struct selector_key *key);
+void
+connecting_init(const unsigned state, struct selector_key *key) {
+    // nada por hacer
+}
 
-/** intenta establecer una conexión con el origin server */
+void send_error_(int fd, const char * error) {
+    send(fd, error, strlen(error), 0);
+}
+
 unsigned
-connect_(struct selector_key *key) {
-    if (-1 == origin_connect(key)){
+connecting(struct selector_key *key) {
+    int error;
+    socklen_t len = sizeof(error);
+    struct pop3 *d = ATTACHMENT(key);
+
+    if (getsockopt(key->fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0) {
+        send_error_(d->client_fd, "-ERR Connection refused.\r\n");
         fprintf(stderr, "Connection to origin server failed\n");
         return ERROR;
+    } else {
+        if(error == 0) {
+            d->origin_fd = key->fd;
+        } else {
+            send_error_(d->client_fd, "-ERR Connection refused.\r\n");
+            fprintf(stderr, "Connection to origin server failed\n");
+            return ERROR;
+        }
     }
 
     log_connection(true, (const struct sockaddr *)&ATTACHMENT(key)->client_addr,
-                (const struct sockaddr *)&ATTACHMENT(key)->origin_addr);
+                   (const struct sockaddr *)&ATTACHMENT(key)->origin_addr);
 
     //TODO preguntar al server por pipelining
     bool pipelining = false;
     pop3_session_init(&ATTACHMENT(key)->session, pipelining);
 
-    return HELLO_READ;
-}
+    selector_status s;
 
+    s = set_interests(key->s, d->client_fd, key->fd, HELLO_READ);
+    return SELECTOR_SUCCESS == s ? HELLO_READ : ERROR;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // HELLO
@@ -824,8 +902,13 @@ response_write_process(struct selector_key *key, struct request_st * d) {
         case user:
             ATTACHMENT(key)->session.user = d->request.args;
             break;
+        case pass:
+            if (d->request.response->status == response_status_ok)
+                ATTACHMENT(key)->session.state = POP3_TRANSACTION;
+            break;
         case capa:
-
+            //todo buscar pipelining en la respuesta, y agregarselo si no está
+            // o cachear la respuesta al principio y mandarle la respuesta cacheada
             break;
         default:
             break;
@@ -896,7 +979,8 @@ static const struct state_definition client_statbl[] = {
         },
         {
                 .state            = CONNECTING,
-                .on_write_ready   = connect_,
+                .on_arrival       = connecting_init,
+                .on_write_ready   = connecting,
         },{
                 .state            = HELLO_READ,
                 .on_arrival       = hello_init,
@@ -1001,64 +1085,6 @@ pop3_done(struct selector_key *key) {
 
     log_connection(false, (const struct sockaddr *)&ATTACHMENT(key)->client_addr,
                    (const struct sockaddr *)&ATTACHMENT(key)->origin_addr);
-}
-
-// Connection utilities
-
-int
-origin_connect(struct selector_key *key) {
-
-    int sock = socket(ATTACHMENT(key)->origin_domain, SOCK_STREAM, IPPROTO_TCP);
-    ATTACHMENT(key)->origin_fd = sock;
-
-    printf("server socket: %d\n", sock);
-
-    if (sock < 0) {
-        perror("socket() failed");
-        return sock;
-    }
-
-    if (selector_fd_set_nio(sock) == -1) {
-        goto error;
-    }
-
-    /* Establish the connection to the origin server */
-    if (-1 == connect(sock,
-                      (const struct sockaddr *)&ATTACHMENT(key)->origin_addr,
-                      ATTACHMENT(key)->origin_addr_len)) {
-        if(errno == EINPROGRESS) {
-            // es esperable,  tenemos que esperar a la conexión
-
-            // dejamos de pollear el socket del cliente
-            selector_status st = selector_set_interest_key(key, OP_NOOP);
-            if(SELECTOR_SUCCESS != st) {
-                goto error;
-            }
-
-            // esperamos la conexion en el nuevo socket
-            st = selector_register(key->s, sock, &pop3_handler,
-                                   OP_READ, key->data);
-            if(SELECTOR_SUCCESS != st) {
-                goto error;
-            }
-            ATTACHMENT(key)->references += 1;
-        } else {
-            goto error;
-        }
-    } else {
-        // estamos conectados sin esperar... no parece posible
-        // saltaríamos directamente a COPY
-        abort();
-    }
-
-    return sock;
-
-    error:
-        if (sock != -1) {
-            close(sock);
-            ATTACHMENT(key)->origin_fd = -1;
-        }
-        return -1;
 }
 
 /** loguea la conexion a stdout */
