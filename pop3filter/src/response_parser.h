@@ -58,7 +58,7 @@ response_parser_feed (struct response_parser *p, uint8_t c);
  *   si el parsing se debió a una condición de error
  */
 enum response_state
-response_consume(buffer *b, struct response_parser *p, bool *errored);
+response_consume(buffer *b, buffer *wb, struct response_parser *p, bool *errored);
 
 /**
  * Permite distinguir a quien usa response_parser_feed si debe seguir

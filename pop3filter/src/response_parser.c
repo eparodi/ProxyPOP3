@@ -164,13 +164,13 @@ response_is_done(const enum response_state st, bool *errored) {
 }
 
 extern enum response_state
-response_consume(buffer *b, struct response_parser *p, bool *errored) {
+response_consume(buffer *b, buffer *wb, struct response_parser *p, bool *errored) {
     enum response_state st = p->state;
 
     while(buffer_can_read(b)) {
         const uint8_t c = buffer_read(b);
         st = response_parser_feed(p, c);
-        buffer_write(b, c);
+        buffer_write(wb, c);
         if(response_is_done(st, errored)) {
             break;
         }
