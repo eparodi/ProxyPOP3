@@ -80,7 +80,7 @@ enum pop3_state {
     /**
      *  Lee la respuesta del origin server
      */
-            RESPONSE_READ,
+            RESPONSE_READ, //TODO mergear response read y write en este estado
     /**
      *  Le envia la respuesta al cliente
      */
@@ -114,7 +114,7 @@ struct hello_st {
 /** usado por REQUEST_READ, REQUEST_WRITE, RESPONSE_READ y RESPONSE_WRITE */
 struct request_st {
     /** buffer utilizado para I/O */
-    buffer                     *rb, *wb;
+    buffer                     *rb, *wb, *wrb;
 
     /** parsers */
     struct pop3_request         request;
@@ -170,6 +170,9 @@ struct pop3 {
     uint8_t raw_buff_a[2048], raw_buff_b[2048];
     buffer read_buffer, write_buffer;
 
+    uint8_t raw_super_buffer[2048];
+    buffer super_buffer;
+
     /** cantidad de referencias a este objeto. si es uno se debe destruir */
     unsigned references;
 
@@ -220,6 +223,8 @@ pop3_new(int client_fd) {
 
     buffer_init(&ret->read_buffer,  N(ret->raw_buff_a), ret->raw_buff_a);
     buffer_init(&ret->write_buffer, N(ret->raw_buff_b), ret->raw_buff_b);
+
+    buffer_init(&ret->super_buffer,  N(ret->raw_super_buffer), ret->raw_super_buffer);
 
     pop3_session_init(&ret->session, false);
 
@@ -468,7 +473,7 @@ static unsigned
 origin_connect(struct selector_key *key) {
 
     int sock = socket(ATTACHMENT(key)->origin_domain, SOCK_STREAM, IPPROTO_TCP);
-    ATTACHMENT(key)->origin_fd = sock;
+    //ATTACHMENT(key)->origin_fd = sock;
 
     printf("server socket: %d\n", sock);
 
@@ -506,7 +511,6 @@ origin_connect(struct selector_key *key) {
         }
     } else {
         // estamos conectados sin esperar... no parece posible
-        // saltaríamos directamente a COPY
         abort();
     }
 
@@ -515,7 +519,7 @@ origin_connect(struct selector_key *key) {
     error:
     if (sock != -1) {
         close(sock);
-        ATTACHMENT(key)->origin_fd = -1;
+        //ATTACHMENT(key)->origin_fd = -1;
     }
     return ERROR;
 }
@@ -665,6 +669,8 @@ request_init(const unsigned state, struct selector_key *key) {
 
     d->rb              = &(ATTACHMENT(key)->read_buffer);
     d->wb              = &(ATTACHMENT(key)->write_buffer);
+    d->wrb             = &(ATTACHMENT(key)->super_buffer);
+
     d->request_parser.request  = &d->request;
     request_parser_init(&d->request_parser);
 
@@ -821,6 +827,11 @@ static unsigned response_process(struct selector_key *key, struct request_st * d
 
 enum pop3_state response_write_process(struct selector_key *key, struct request_st * d);
 
+void
+response_init(const unsigned int state, struct selector_key *key) {
+
+}
+
 /** Lee la respuesta del origin server*/
 static unsigned
 response_read(struct selector_key *key) {
@@ -838,12 +849,14 @@ response_read(struct selector_key *key) {
 
     if(n > 0) {
         buffer_write_adv(b, n);
-        //response_parser_init(&d->response_parser);
-        enum response_state st = response_consume(b, &d->response_parser, &error);
+        enum response_state st = response_consume(b, d->wrb, &d->response_parser, &error);
+        selector_status ss = set_interests(key->s, ATTACHMENT(key)->client_fd, key->fd, RESPONSE_WRITE);
+        ret = (ss == SELECTOR_SUCCESS) ? RESPONSE_WRITE : ERROR;
+
         if (response_is_done(st, 0)) {
-            ret = response_process(key, &ATTACHMENT(key)->client.request);
+            //ret = response_process(key, &ATTACHMENT(key)->client.request);
+            log_response(d->request.response);
         }
-        log_response(d->request.response);
     } else {
         ret = ERROR;
     }
@@ -872,19 +885,26 @@ response_write(struct selector_key *key) {
     struct request_st *d = &ATTACHMENT(key)->client.request;
 
     enum pop3_state  ret = RESPONSE_WRITE;
+
+    buffer *b = d->wrb;
     uint8_t *ptr;
     size_t  count;
     ssize_t  n;
 
-    ptr = buffer_read_ptr(d->wb, &count);
+    ptr = buffer_read_ptr(b, &count);
     n = send(key->fd, ptr, count, MSG_NOSIGNAL);
 
     if(n == -1) {
         ret = ERROR;
     } else {
-        buffer_read_adv(d->wb, n);
-        if (!buffer_can_read(d->wb)) {
-            ret = response_write_process(key, d);
+        buffer_read_adv(b, n);
+        if (!buffer_can_read(b)) {
+            if (d->response_parser.state == response_mail) {
+                set_interests(key->s, key->fd, ATTACHMENT(key)->origin_fd, RESPONSE_READ);
+                ret = RESPONSE_READ;
+            } else {
+                ret = response_write_process(key, d);
+            }
         }
     }
 

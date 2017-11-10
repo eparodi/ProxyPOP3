@@ -19,11 +19,6 @@ int create_master_socket(int protocol, struct addrinfo *addr) {
     int master_socket;
     int sock_opt = true;
 
-    if (protocol == IPPROTO_SCTP) {
-        ((struct sockaddr_in *) addr->ai_addr)->sin_port = htons(
-                parameters->management_port);
-    }
-
     // create a master socket
     if ((master_socket = socket(addr->ai_family, SOCK_STREAM, protocol)) == 0) {
         perror("socket failed");

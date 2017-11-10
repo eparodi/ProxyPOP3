@@ -2,9 +2,9 @@
 #define POP3CTL_POP3CTL_H
 
 struct options {
-    in_addr_t management_address;
+    char* management_address;
     uint16_t management_port;
-    int listen_family;
+    struct addrinfo * managementaddrinfo;
 };
 
 typedef struct options * options;
