@@ -80,7 +80,7 @@ enum pop3_state {
     /**
      *  Lee la respuesta del origin server
      */
-            RESPONSE_READ,
+            RESPONSE_READ, //TODO mergear response read y write en este estado
     /**
      *  Le envia la respuesta al cliente
      */
@@ -468,7 +468,7 @@ static unsigned
 origin_connect(struct selector_key *key) {
 
     int sock = socket(ATTACHMENT(key)->origin_domain, SOCK_STREAM, IPPROTO_TCP);
-    ATTACHMENT(key)->origin_fd = sock;
+    //ATTACHMENT(key)->origin_fd = sock;
 
     printf("server socket: %d\n", sock);
 
@@ -506,7 +506,6 @@ origin_connect(struct selector_key *key) {
         }
     } else {
         // estamos conectados sin esperar... no parece posible
-        // saltaríamos directamente a COPY
         abort();
     }
 
@@ -515,7 +514,7 @@ origin_connect(struct selector_key *key) {
     error:
     if (sock != -1) {
         close(sock);
-        ATTACHMENT(key)->origin_fd = -1;
+        //ATTACHMENT(key)->origin_fd = -1;
     }
     return ERROR;
 }
@@ -820,6 +819,11 @@ void log_response(const struct pop3_response *r);
 static unsigned response_process(struct selector_key *key, struct request_st * d);
 
 enum pop3_state response_write_process(struct selector_key *key, struct request_st * d);
+
+void
+response_init(const unsigned int state, struct selector_key *key) {
+
+}
 
 /** Lee la respuesta del origin server*/
 static unsigned

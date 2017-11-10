@@ -51,7 +51,9 @@ newline(const uint8_t c, struct response_parser *p) {
                 ret = response_mail;
                 break;
             case list:
-                ret = response_list;
+                if (p->request->args == NULL) {
+                    ret = response_list;
+                }
                 break;
             case capa:
                 ret = response_capa;
