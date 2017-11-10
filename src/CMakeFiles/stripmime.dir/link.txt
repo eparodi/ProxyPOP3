@@ -1,0 +1,1 @@
+/usr/bin/cc   -pthread -g   CMakeFiles/stripmime.dir/main.c.o  -o stripmime libparser.a 

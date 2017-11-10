@@ -1,0 +1,1 @@
+/usr/bin/cc   -pthread -g   CMakeFiles/check_mime_msg.dir/check_mime_msg.c.o  -o check_mime_msg ../src/libparser.a -lcheck_pic -lrt -lm -lsubunit 

@@ -1,0 +1,14 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/tmb/Protos/parser/src/main.c
+stripmime.h
+/home/tmb/Protos/parser/src/stripmime.h
+
+/home/tmb/Protos/parser/src/stripmime.h
+

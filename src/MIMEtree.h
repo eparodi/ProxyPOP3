@@ -4,6 +4,6 @@ struct MIMEtype{
 }
 
 
-struct MIMEtree* tree_init();
+struct Tree* tree_init();
 
-void add(struct MIMEtree* tree; struct MIMEtype* mime);
+void add(struct Tree* tree; struct MIMEtype* mime);

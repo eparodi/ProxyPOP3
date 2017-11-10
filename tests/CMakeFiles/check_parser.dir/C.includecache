@@ -1,0 +1,24 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/flacu/Downloads/mime/src/parser.h
+stdint.h
+-
+stddef.h
+-
+
+/home/flacu/Downloads/mime/tests/check_parser.c
+stdio.h
+-
+stdlib.h
+-
+check.h
+-
+../src/parser.h
+/home/flacu/Downloads/mime/src/parser.h
+

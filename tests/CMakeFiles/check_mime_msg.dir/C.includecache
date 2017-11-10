@@ -1,0 +1,34 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/flacu/Downloads/mime/tests/check_mime_msg.c
+stdio.h
+-
+stdlib.h
+-
+check.h
+-
+parser.h
+/home/flacu/Downloads/mime/tests/parser.h
+mime_chars.h
+/home/flacu/Downloads/mime/tests/mime_chars.h
+mime_msg.h
+/home/flacu/Downloads/mime/tests/mime_msg.h
+
+tests/../src/mime_chars.h
+
+tests/../src/mime_msg.h
+parser.h
+tests/../src/parser.h
+
+tests/../src/parser.h
+stdint.h
+-
+stddef.h
+-
+

@@ -59,52 +59,16 @@ static bool F = false;
 
 
 static void
-content_type_type(struct ctx*ctx, const uint8_t c){
-    const struct parser_event* e = parser_list_feed(ctx->filtered_types, c);
-    do{
-        debug("3.type", type_event, e);
-        switch(e->type){
-            case STRING_CMP_EQ:
-                ctx->value_type_detected = &T;
-                break;
-            case STRING_CMP_NEQ:
-                ctx->value_type_detected = &F;
-                break;
-        }
-        e = e->next;
-        while(e!=NULL);
-    }
-}
-
-static void
-content_type_subtype(struct ctx*ctx, const uint8_t c){
-    const struct parser_event* e = parser_list_feed(ctx->filtered_subtypes, c);
-    do{
-        debug("3.subtype", subtype_event, e);
-        switch(e->type){
-            case STRING_CMP_EQ:
-                ctx->value_subtype_detected = &T;
-                break;
-            case STRING_CMP_NEQ:
-                ctx->value_subtype_detected = &F;
-                break;
-        }
-        e = e->next;
-        while(e!=NULL);
-    }
-}
-
-static void
 content_type_value(struct ctx*ctx, const uint8_t c){
     const struct parser_event* e = parser_feed(ctx->filtered_msg, c);
     do{
-        debug("2.typeval", mime_type_event, e);
+        debug("3.typeval", mime_type_event, e);
         switch(e->type){
             case MIME_TYPE_TYPE:
-                content_type_type(ctx, c);
+                ctx->filtered_msg_detected = &T;
                 break;
             case MIME_TYPE_SUBTYPE:
-                content_type_subtype(ctx, c);
+                ctx->filtered_msg_detected = &F;
                 break;
         }
         e = e->next;
@@ -218,7 +182,7 @@ stripmime(int argc, const char **argv) {
         .multi        = parser_init(no_class, pop3_multi_parser()),
         .msg          = parser_init(init_char_class(), mime_message_parser()),
         .ctype_header = parser_init(no_class, &media_header_def),
-        .filtered_msg = parser_init(init_char_class(), mime_type_parser()),
+        .filtered_msg = parser_init(no_class, mime_type_parser()),
     };
 
     uint8_t data[4096];

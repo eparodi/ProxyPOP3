@@ -1,0 +1,2 @@
+/usr/bin/ar qc libparser.a  CMakeFiles/parser.dir/parser.c.o CMakeFiles/parser.dir/mime_chars.c.o CMakeFiles/parser.dir/mime_msg.c.o CMakeFiles/parser.dir/mime_type.c.o CMakeFiles/parser.dir/parser_utils.c.o CMakeFiles/parser.dir/pop3_multi.c.o CMakeFiles/parser.dir/stripmime.c.o
+/usr/bin/ranlib libparser.a

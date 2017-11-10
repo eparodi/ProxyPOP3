@@ -1,0 +1,1 @@
+/usr/bin/cc   -pthread -g   CMakeFiles/main.dir/main.c.o  -o main libparser.a 

@@ -2,23 +2,23 @@
 #define WILDCARD '*'
 
 
-struct MIMEtree{
-	struct MIMEtreeNode* first;
+struct Tree{
+	struct TreeNode* first;
 }
 
-struct MIMEtreeNode{
+struct TreeNode{
 	parser* parser;
-	struct MIMEtreeNode *next;
-	struct MIMEtreeNode *children;
+	struct TreeNode *next;
+	struct TreeNode *children;
 	const char* name;
 	bool match;
 	bool wildcard;
 }
 
 
-struct MIMEtree*
+struct Tree*
 tree_init(){
-	struct MIMEtree* tree = malloc(sizeof(*tree));
+	struct Tree* tree = malloc(sizeof(*tree));
 	if(tree != NULL){
 		tree->first = malloc(sizeof(*first));
 		if(first != NULL){
@@ -28,9 +28,9 @@ tree_init(){
 	return NULL;
 }
 
-struct MIMEtreeNode*
-findTypeMatch(struct MIMEtree* tree, char* type, bool* found){
-	struct MIMEtreeNode* node = tree->first;
+struct TreeNode*
+findTypeMatch(struct Tree* tree, char* type, bool* found){
+	struct TreeNode* node = tree->first;
 	while(node != NULL){
 		if(node->name == type){
 			*found = true;
@@ -41,8 +41,8 @@ findTypeMatch(struct MIMEtree* tree, char* type, bool* found){
 	return node;
 }
 
-struct MIMEtreeNode*
-findSubTypeMatch(struct MIMEtreeNode* node, char* subtype, bool* found){
+struct TreeNode*
+findSubTypeMatch(struct TreeNode* node, char* subtype, bool* found){
 	while(node != NULL){
 		if(node->wildcard){
 			*found = true;
@@ -57,7 +57,7 @@ findSubTypeMatch(struct MIMEtreeNode* node, char* subtype, bool* found){
 	return node;
 }
 
-void addWildcard(struct MIMEtree* tree, char* type){	
+void addWildcard(struct Tree* tree, char* type){	
 	if(found){
 		removeChildren(node);
 		node->children = newNodeWildcard();
@@ -69,13 +69,13 @@ void addWildcard(struct MIMEtree* tree, char* type){
 }
 
 void
-add(struct MIMEtree* tree, char* type, char*subtype) {
+add(struct Tree* tree, char* type, char*subtype) {
 	if(tree!=NULL){
 	if(subtype == WILDCARD){
 		addWildcard(tree,type);
 	}else{
 		bool found = false;
-		struct MIMEtreeNode* node = findTypeMatch(tree,type, &found);
+		struct TreeNode* node = findTypeMatch(tree,type, &found);
 		if(found){
 			found = false;
 			node = findSubTypeMatch(node, subtype, &found);
@@ -93,9 +93,9 @@ add(struct MIMEtree* tree, char* type, char*subtype) {
 	}
 }
 
-struct MIMEtreeNode*
+struct TreeNode*
 newNode(char* name){
-	struct MIMEtreeNode* node = malloc(sizeof(*node));
+	struct TreeNode* node = malloc(sizeof(*node));
 	if(node != NULL){
 		node->parser = NULL//parser_init(init_char_class(),parser_utils_strcmpi(name));
 		node->next = NULL;
@@ -107,9 +107,9 @@ newNode(char* name){
 	return node;
 }
 
-struct MIMEtreeNode*
+struct TreeNode*
 newNodeWildcard(){
-	struct MIMEtreeNode* node = malloc(sizeof(*node));
+	struct TreeNode* node = malloc(sizeof(*node));
 	if(node != NULL){
 		node->parser = NULL
 		node->next = NULL;
@@ -121,8 +121,8 @@ newNodeWildcard(){
 	return node;
 }
 
-struct MIMEtreeNode*
-removeChildren(struct MIMEtreeNode* node){
+struct TreeNode*
+removeChildren(struct TreeNode* node){
 	node->children = NULL;
 	return node;
 }

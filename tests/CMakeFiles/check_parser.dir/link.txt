@@ -1,0 +1,1 @@
+/usr/bin/cc   -pthread -g   CMakeFiles/check_parser.dir/check_parser.c.o  -o check_parser ../src/libparser.a -lcheck_pic -lrt -lm -lsubunit 

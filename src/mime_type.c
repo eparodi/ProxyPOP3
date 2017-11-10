@@ -61,7 +61,7 @@ unexpected(struct parser_event *ret, const uint8_t c) {
 static const struct parser_state_transition ST_TYPE0[] =  {
     {.when = '/',        				.dest = ERROR,         		.act1 = unexpected,	},
     {.when = TOKEN_LWSP,   				.dest = ERROR,         		.act1 = unexpected,	},
-    {.when = TOKEN_CHAR,		.dest = TYPE,				.act1 = type,		},
+    {.when = TOKEN_REST_NAME_FIRST,		.dest = TYPE,				.act1 = type,		},
     {.when = ANY, 						.dest = ERROR, 				.act1 = unexpected,	}
 };
 
