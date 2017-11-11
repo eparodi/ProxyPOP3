@@ -25,7 +25,8 @@ newNode(char* name){
 	if(node != NULL){
 		memset(node,0,sizeof(*node));
 		const struct parser_definition parser = parser_utils_strcmpi(name);
-		node->parser = parser_init(init_char_class(),&parser);
+        const unsigned int* no_class = parser_no_classes();
+		node->parser = parser_init(no_class,&parser);
 		node->next = NULL;
 		node->children = NULL;
 		node->name = name;
@@ -44,7 +45,7 @@ newNodeWildcard(){
 		node->next = NULL;
 		node->children = NULL;
 		node->name = WILDCARD;
-		node->event = NULL; //TODO deberia ser NULL?
+		node->event = NULL;
 		node->wildcard = true;
 	}
 	return node;

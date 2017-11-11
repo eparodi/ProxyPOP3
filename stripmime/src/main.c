@@ -69,10 +69,8 @@ int main(int argc, char const *argv[]) {
 		}
 		strcpy(subtype, mime);
 
-		addNode(tree, type, subtype); // TODO (facu)
-		//removeNode(tree,type,subtype);
+		addNode(tree, type, subtype);
 
-		//printf("'%s'/'%s'\n", type, subtype);
     
     	free(aux);
 		token = strtok_r(NULL, comma, &ctx1);

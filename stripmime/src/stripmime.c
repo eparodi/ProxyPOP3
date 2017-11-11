@@ -8,7 +8,6 @@
 #include "pop3_multi.h"
 #include "mime_chars.h"
 #include "mime_msg.h"
-#include "parser.h"
 #include "stripmime.h"
 
 /*
@@ -63,15 +62,57 @@ struct ctx {
 static bool T = true;
 static bool F = false;
 
+void
+setContextType(struct ctx* ctx){
+    struct TreeNode* node = ctx->mime_tree->first;
+    if(node->event == STRING_CMP_EQ){
+        ctx->subtype = node->children;
+    }
+
+    while(node->next != NULL){
+        if(node->event == STRING_CMP_EQ){
+            ctx->subtype = node->children;
+        }
+    }
+}
 
 const struct parser_event *
 parser_feed_type (struct Tree* mime_tree, struct TreeNode* subtype, const uint8_t c){
-    return NULL;
+    struct TreeNode* node = mime_tree->first;
+    unsigned globalEvent = STRING_CMP_NEQ;
+    node->event = parser_feed(node->parser,c);
+    if(node->event == STRING_CMP_EQ){
+        globalEvent = STRING_CMP_EQ;
+    }
+    while(node->next != NULL){
+        node = node->next;
+        node->event = parser_feed(node->parser,c);
+        if(node->event == STRING_CMP_EQ){
+            globalEvent = STRING_CMP_EQ;
+        }
+    }
+    return globalEvent;
 }
 
 const struct parser_event *
 parser_feed_subtype (struct TreeNode* node, const uint8_t c){
-    return NULL;
+    if(node->wildcard){
+        return STRING_CMP_EQ;
+    }
+    unsigned globalEvent = STRING_CMP_NEQ;
+    node->event = parser_feed(node->parser,c);
+    if(node->event == STRING_CMP_EQ){
+        globalEvent = STRING_CMP_EQ;
+    }
+
+    while(node->next != NULL){
+        node = node->next;
+        node->event = parser_feed(node->parser,c);
+        if(node->event == STRING_CMP_EQ) {
+            globalEvent = STRING_CMP_EQ;
+        }
+    }
+    return globalEvent;
 }
 
 static void
@@ -100,10 +141,10 @@ content_type_type(struct ctx*ctx, const uint8_t c){
         debug("4.type", parser_utils_strcmpi_event, e);
         switch(e->type){
             case STRING_CMP_EQ:
-                content_type_subtype(ctx,c);
+                ctx->filtered_msg_detected = &T;
                 break;
             case STRING_CMP_NEQ:
-                //TODO
+                ctx->filtered_msg_detected = &F;
                 break;
         }
         e = e->next;
@@ -117,11 +158,20 @@ content_type_value(struct ctx*ctx, const uint8_t c){
         debug("3.typeval", mime_type_event, e);
         switch(e->type){
             case MIME_TYPE_TYPE:
+                if(ctx->filtered_msg_detected != 0
+                   || *ctx->filtered_msg_detected)
                 content_type_type(ctx,c);
                 break;
             case MIME_TYPE_SUBTYPE:
+                if(ctx->filtered_msg_detected != 0
+                   || *ctx->filtered_msg_detected)
                 content_type_subtype(ctx,c);
                 break;
+            case MIME_TYPE_TYPE_END:
+                if(ctx->filtered_msg_detected != 0
+                   || *ctx->filtered_msg_detected){
+                    setContextType(ctx);
+                }
         }
         e = e->next;
     } while (e != NULL);
@@ -235,6 +285,8 @@ stripmime(int argc, const char **argv, struct Tree* tree) {
         .msg          = parser_init(init_char_class(), mime_message_parser()),
         .ctype_header = parser_init(no_class, &media_header_def),
         .filtered_msg = parser_init(init_char_class(), mime_type_parser()),
+        .mime_tree    = tree,
+        .filtered_msg_detected = &T,
     };
 
     uint8_t data[4096];
