@@ -33,8 +33,12 @@ newNode(char* name){
 		struct parser_definition aux = parser_utils_strcmpi(name);
 		memcpy(def, &aux, sizeof(aux));
 
+		//parser_utils_strcmpi_destroy(&aux);
+
+
         //const unsigned int* no_class = parser_no_classes();
 		node->parser = parser_init(parser_no_classes(), def);
+		node->def	= def;
 		node->next = NULL;
 		node->children = NULL;
 		node->name = name;
@@ -50,6 +54,7 @@ newNodeWildcard(){
 	if(node != NULL){
 		memset(node,0,sizeof(*node));
 		node->parser = NULL;
+		node->def = NULL;
 		node->next = NULL;
 		node->children = NULL;
 		node->name = WILDCARD;

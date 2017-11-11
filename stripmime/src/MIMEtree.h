@@ -5,6 +5,7 @@
 
 struct TreeNode{
 	struct parser* parser;
+	struct parser_definition *def;
 	struct TreeNode *next;
 	struct TreeNode *children;
 	const char* name;
