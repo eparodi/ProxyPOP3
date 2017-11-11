@@ -87,14 +87,9 @@ enum pop3_state {
             RESPONSE_WRITE,
 
     /**
-     * Lee un mail del orgin server
+     * Ejecuta una transformacion externa sobre un mail
      */
-            MAIL_READ,
-
-    /**
-     * Le envia un mail al cliente
-     */
-            MAIL_WRITE,
+            EXTERNAL_TRANSFORMATION,
 
     // estados terminales
             DONE,
@@ -354,11 +349,9 @@ selector_status set_interests(fd_selector s, int client_fd, int origin_fd, enum 
         case REQUEST_WRITE:
             origin_interest = OP_WRITE;
             break;
-        case MAIL_READ:
         case RESPONSE_READ:
             origin_interest = OP_READ;
             break;
-        case MAIL_WRITE:
         case RESPONSE_WRITE:
             client_interest = OP_WRITE;
             break;
@@ -854,7 +847,6 @@ response_read(struct selector_key *key) {
         ret = (ss == SELECTOR_SUCCESS) ? RESPONSE_WRITE : ERROR;
 
         if (response_is_done(st, 0)) {
-            //ret = response_process(key, &ATTACHMENT(key)->client.request);
             log_response(d->request.response);
         }
     } else {
@@ -949,45 +941,53 @@ response_close(const unsigned state, struct selector_key *key) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// MAIL
+// EXTERNAL TRANSFORMATION
 ////////////////////////////////////////////////////////////////////////////////
 
-static unsigned mail_process(struct selector_key *key);
+int open_external_transformation(struct selector_key * key, struct pop3_session * session);
 
-/** Inicializa las variables de los estados MAIL_READ y MAIL_WRITE */
+/** Inicializa las variables del estado EXTERNAL_TRANSFORMATION */
 static void
-mail_init(const unsigned state, struct selector_key *key) {
-   //abrir pipes
-    printf("mail init\n");
-
+external_transformation_init(const unsigned state, struct selector_key *key) {
+    open_external_transformation(key, &ATTACHMENT(key)->session);
 }
 
-// leer del server
+// leer del server y mandarselo al programa externo
 static unsigned
-mail_read(struct selector_key *key) {
-    printf("mail read\n");
+external_transformation_read(struct selector_key *key) {
+    struct pop3 *d      = ATTACHMENT(key);
+    enum pop3_state ret = EXTERNAL_TRANSFORMATION;
 
-    return mail_process(key);
-}
+    buffer *b = &d->write_buffer;
+    uint8_t *ptr;
+    size_t  count;
+    ssize_t  n;
 
-static unsigned
-mail_process(struct selector_key *key) {
-    if (SELECTOR_SUCCESS == set_interests(key->s, ATTACHMENT(key)->client_fd, key->fd, MAIL_WRITE)) {
-        return MAIL_WRITE;
+    ptr = buffer_write_ptr(b, &count);
+    n = recv(key->fd, ptr, count, 0);
+
+    if(n > 0) {
+        buffer_write_adv(b, n);
+        selector_status ss;
+
+
+
+    } else {
+        ret = ERROR;
     }
-    return ERROR;
+
+    return ret;
 }
 
 //escribir en el cliente
 static unsigned
-mail_write(struct selector_key *key) {
-    printf("mail write\n");
+external_transformation_write(struct selector_key *key) {
     return DONE;
 }
 
 static void
-mail_close(const unsigned state, struct selector_key *key) {
-    //cerrar pipes
+external_transformation_close(const unsigned state, struct selector_key *key) {
+
 }
 
 /** definición de handlers para cada estado */
@@ -1026,13 +1026,11 @@ static const struct state_definition client_statbl[] = {
                 .on_write_ready   = response_write,
                 .on_departure     = response_close,
         },{
-                .state            = MAIL_READ,
-                .on_read_ready    = mail_read,
-                .on_arrival       = mail_init,
-        },{
-                .state            = MAIL_WRITE,
-                .on_write_ready   = mail_write,
-                .on_departure     = mail_close,
+                .state            = EXTERNAL_TRANSFORMATION,
+                .on_arrival       = external_transformation_init,
+                .on_read_ready    = external_transformation_read,
+                .on_write_ready   = external_transformation_write,
+                .on_departure     = external_transformation_close,
         },{
                 .state            = DONE,
 
@@ -1142,17 +1140,16 @@ void log_response(const struct pop3_response *r) {
 ////////////////////////////////////////////////////////////////////////////////
 
 char *concat_string(char *variable, char *value) {
-
     char * ret =  malloc((strlen(variable) + strlen(value)+1)*sizeof(char));
+    ret[0] = '\0';
     strcat(ret, variable);
     strcat(ret, value);
 
     return ret;
 }
 
-// TODO solo llamar cuando la respuesta fue +OK
 int
-open_external_transformation(struct selector_key * key, struct pop3_session * session){
+open_external_transformation(struct selector_key * key, struct pop3_session * session) {
 
     // TODO: change filter_medias.
     char *filter_medias         = concat_string("FILTER_MEDIAS=",
@@ -1189,15 +1186,17 @@ open_external_transformation(struct selector_key * key, struct pop3_session * se
         }
     }else{
         struct pop3 * data = ATTACHMENT(key);
-        if (selector_register(key->s, fd[0], NULL, OP_NOOP, data) == 0){
-            data->extern_write_fd;
+        if (selector_register(key->s, fd[0], NULL, OP_NOOP, data) == 0 &&
+                selector_fd_set_nio(fd[0]) == 0){
+            data->extern_write_fd = fd[0];
         }else{
             close(fd[0]);
             close(fd[1]);
             return -1;
         } // write to.
-        if (selector_register(key->s, fd[1], NULL, OP_NOOP, data) == 0){
-            data->extern_read_fd;
+        if (selector_register(key->s, fd[1], NULL, OP_NOOP, data) == 0 &&
+                selector_fd_set_nio(fd[1]) == 0){
+            data->extern_read_fd = fd[1];
         }else{
             selector_unregister_fd(key->s, fd[0]);
             close(fd[0]);
