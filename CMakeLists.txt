@@ -8,11 +8,11 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
 add_compile_options("-lsctp")
 link_libraries("-lsctp")
 
-#AUX_SOURCE_DIRECTORY(pop3filter/src SOURCE_FILES)
-#add_executable(pop3filter ${SOURCE_FILES})
+AUX_SOURCE_DIRECTORY(pop3filter/src SOURCE_FILES)
+add_executable(pop3filter ${SOURCE_FILES})
 
-#AUX_SOURCE_DIRECTORY(pop3ctl/src POP3CTL_SOURCE_FILES)
-#add_executable(pop3ctl ${POP3CTL_SOURCE_FILES})
+AUX_SOURCE_DIRECTORY(pop3ctl/src POP3CTL_SOURCE_FILES)
+add_executable(pop3ctl ${POP3CTL_SOURCE_FILES})
 
 AUX_SOURCE_DIRECTORY(stripmime/src STRIPMIME_SOURCE_FILES)
 add_executable(stripmimee ${STRIPMIME_SOURCE_FILES})
