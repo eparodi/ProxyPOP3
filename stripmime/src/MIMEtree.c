@@ -24,9 +24,17 @@ newNode(char* name){
 	struct TreeNode* node = malloc(sizeof(*node));
 	if(node != NULL){
 		memset(node,0,sizeof(*node));
-		const struct parser_definition parser = parser_utils_strcmpi(name);
-        const unsigned int* no_class = parser_no_classes();
-		node->parser = parser_init(no_class,&parser);
+		struct parser_definition * def = malloc(sizeof(*def));
+		if (def == NULL) {
+			free(node);
+			return NULL;
+		}
+
+		struct parser_definition aux = parser_utils_strcmpi(name);
+		memcpy(def, &aux, sizeof(aux));
+
+        //const unsigned int* no_class = parser_no_classes();
+		node->parser = parser_init(parser_no_classes(), def);
 		node->next = NULL;
 		node->children = NULL;
 		node->name = name;
