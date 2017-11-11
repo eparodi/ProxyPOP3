@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <memory.h>
 
 #include "mime_type.h"
 #include "parser_utils.h"
@@ -65,54 +67,60 @@ static bool F = false;
 void
 setContextType(struct ctx* ctx){
     struct TreeNode* node = ctx->mime_tree->first;
-    if(node->event == STRING_CMP_EQ){
+    if(node->event->type == STRING_CMP_EQ){
         ctx->subtype = node->children;
+        return;
     }
 
     while(node->next != NULL){
-        if(node->event == STRING_CMP_EQ){
+        node = node->next;
+        if(node->event->type == STRING_CMP_EQ){
             ctx->subtype = node->children;
+            return;
         }
     }
 }
 
 const struct parser_event *
-parser_feed_type (struct Tree* mime_tree, struct TreeNode* subtype, const uint8_t c){
+parser_feed_type (struct Tree* mime_tree, const uint8_t c){
     struct TreeNode* node = mime_tree->first;
-    unsigned globalEvent = STRING_CMP_NEQ;
+    struct parser_event* global_event;
     node->event = parser_feed(node->parser,c);
-    if(node->event == STRING_CMP_EQ){
-        globalEvent = STRING_CMP_EQ;
-    }
+    global_event = node->event;
     while(node->next != NULL){
         node = node->next;
         node->event = parser_feed(node->parser,c);
-        if(node->event == STRING_CMP_EQ){
-            globalEvent = STRING_CMP_EQ;
+        if(node->event->type == STRING_CMP_EQ){
+            global_event = node->event;
         }
     }
-    return globalEvent;
+    return global_event;
 }
 
 const struct parser_event *
 parser_feed_subtype (struct TreeNode* node, const uint8_t c){
+    struct parser_event* global_event;
+
     if(node->wildcard){
-        return STRING_CMP_EQ;
+        global_event = malloc(sizeof(*global_event));
+        memset(global_event,0,sizeof(global_event));
+        global_event->type = STRING_CMP_EQ;
+        global_event->next = NULL;
+        global_event->n = 1;
+        global_event->data[0] = c;
+        return global_event;
     }
-    unsigned globalEvent = STRING_CMP_NEQ;
     node->event = parser_feed(node->parser,c);
-    if(node->event == STRING_CMP_EQ){
-        globalEvent = STRING_CMP_EQ;
-    }
+    global_event = node->event;
 
     while(node->next != NULL){
         node = node->next;
         node->event = parser_feed(node->parser,c);
-        if(node->event == STRING_CMP_EQ) {
-            globalEvent = STRING_CMP_EQ;
+        if(node->event->type == STRING_CMP_EQ) {
+            global_event = node->event;
         }
     }
-    return globalEvent;
+    return global_event;
 }
 
 static void
@@ -136,7 +144,7 @@ content_type_subtype(struct ctx* ctx, const uint8_t c){
 static void
 content_type_type(struct ctx*ctx, const uint8_t c){
     struct TreeNode* node;
-    const struct parser_event* e = parser_feed_type(ctx->mime_tree,node,c);
+    const struct parser_event* e = parser_feed_type(ctx->mime_tree,c);
     do{
         debug("4.type", parser_utils_strcmpi_event, e);
         switch(e->type){
@@ -160,7 +168,10 @@ content_type_value(struct ctx*ctx, const uint8_t c){
             case MIME_TYPE_TYPE:
                 if(ctx->filtered_msg_detected != 0
                    || *ctx->filtered_msg_detected)
-                content_type_type(ctx,c);
+                    for(int i=0;i<e->n;i++){
+                        content_type_type(ctx,e->data[i]);
+                    }
+
                 break;
             case MIME_TYPE_SUBTYPE:
                 if(ctx->filtered_msg_detected != 0
