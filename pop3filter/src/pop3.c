@@ -964,14 +964,11 @@ external_transformation_read(struct selector_key *key) {
     ssize_t  n;
 
     ptr = buffer_write_ptr(b, &count);
-    n = recv(key->fd, ptr, count, 0);
+    n = recv(d->origin_fd, ptr, count, 0);
 
     if(n > 0) {
         buffer_write_adv(b, n);
         selector_status ss;
-
-
-
     } else {
         ret = ERROR;
     }
@@ -982,7 +979,25 @@ external_transformation_read(struct selector_key *key) {
 //escribir en el cliente
 static unsigned
 external_transformation_write(struct selector_key *key) {
-    return DONE;
+    struct pop3 *d      = ATTACHMENT(key);
+    enum pop3_state ret = EXTERNAL_TRANSFORMATION;
+
+    buffer *b = &d->read_buffer;
+    uint8_t *ptr;
+    size_t  count;
+    ssize_t  n;
+
+    ptr = buffer_write_ptr(b, &count);
+    n = send(d->client_fd, ptr, count, 0);
+
+    if(n > 0) {
+        buffer_write_adv(b, n);
+        selector_status ss;
+    } else {
+        ret = ERROR;
+    }
+
+    return ret;
 }
 
 static void
@@ -1148,6 +1163,45 @@ char *concat_string(char *variable, char *value) {
     return ret;
 }
 
+void ext_read(struct selector_key * key){
+    struct pop3 *d      = ATTACHMENT(key);
+
+    buffer *b = &d->read_buffer;
+    uint8_t *ptr;
+    size_t  count;
+    ssize_t  n;
+
+    ptr = buffer_write_ptr(b, &count);
+    n = recv(d->extern_read_fd, ptr, count, 0);
+
+    buffer_write_adv(b, n);
+}
+
+void ext_write(struct selector_key * key){
+    struct pop3 *d      = ATTACHMENT(key);
+
+    buffer *b = &d->write_buffer;
+    uint8_t *ptr;
+    size_t  count;
+    ssize_t  n;
+
+    ptr = buffer_read_ptr(b, &count);
+    n = send(d->extern_write_fd, ptr, count, 0);
+
+    buffer_read_adv(b, n);
+}
+
+void ext_close(struct selector_key * key){
+
+}
+
+static const struct fd_handler ext_handler = {
+        .handle_read   = ext_read,
+        .handle_write  = ext_write,
+        .handle_close  = ext_close,
+        .handle_block  = NULL,
+};
+
 int
 open_external_transformation(struct selector_key * key, struct pop3_session * session) {
 
@@ -1185,8 +1239,12 @@ open_external_transformation(struct selector_key * key, struct pop3_session * se
             fprintf(stderr, "Error\n");
         }
     }else{
+        int i = 0;
+        while(environment[i] != NULL){
+            free(environment[i++]);
+        }
         struct pop3 * data = ATTACHMENT(key);
-        if (selector_register(key->s, fd[0], NULL, OP_NOOP, data) == 0 &&
+        if (selector_register(key->s, fd[0], &ext_handler, OP_WRITE, data) == 0 &&
                 selector_fd_set_nio(fd[0]) == 0){
             data->extern_write_fd = fd[0];
         }else{
@@ -1194,7 +1252,7 @@ open_external_transformation(struct selector_key * key, struct pop3_session * se
             close(fd[1]);
             return -1;
         } // write to.
-        if (selector_register(key->s, fd[1], NULL, OP_NOOP, data) == 0 &&
+        if (selector_register(key->s, fd[1], &ext_handler, OP_READ, data) == 0 &&
                 selector_fd_set_nio(fd[1]) == 0){
             data->extern_read_fd = fd[1];
         }else{
@@ -1206,3 +1264,4 @@ open_external_transformation(struct selector_key * key, struct pop3_session * se
         return 0;
     }
 }
+
