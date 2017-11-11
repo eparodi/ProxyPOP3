@@ -48,7 +48,8 @@ newline(const uint8_t c, struct response_parser *p) {
     if (p->request->response->status != response_status_err) {
         switch (p->request->cmd->id) {
             case retr:
-                ret = response_mail;
+                //ret = response_mail;
+                ret = response_done;
                 break;
             case list:
                 if (p->request->args == NULL) {

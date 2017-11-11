@@ -118,6 +118,8 @@ struct request_st {
 };
 
 
+#define BUFFER_SIZE 2048
+
 /*
  * Si bien cada estado tiene su propio struct que le da un alcance
  * acotado, disponemos de la siguiente estructura para hacer una única
@@ -162,11 +164,14 @@ struct pop3 {
     } orig;
 
     /** buffers para ser usados read_buffer, write_buffer.*/
-    uint8_t raw_buff_a[2048], raw_buff_b[2048];
+    uint8_t raw_buff_a[BUFFER_SIZE], raw_buff_b[BUFFER_SIZE];
     buffer read_buffer, write_buffer;
 
-    uint8_t raw_super_buffer[2048];
+    uint8_t raw_super_buffer[BUFFER_SIZE];
     buffer super_buffer;
+
+    uint8_t raw_extern_read_buffer[BUFFER_SIZE];
+    buffer extern_read_buffer;
 
     /** cantidad de referencias a este objeto. si es uno se debe destruir */
     unsigned references;
@@ -220,6 +225,7 @@ pop3_new(int client_fd) {
     buffer_init(&ret->write_buffer, N(ret->raw_buff_b), ret->raw_buff_b);
 
     buffer_init(&ret->super_buffer,  N(ret->raw_super_buffer), ret->raw_super_buffer);
+    buffer_init(&ret->extern_read_buffer,  N(ret->raw_extern_read_buffer), ret->raw_extern_read_buffer);
 
     pop3_session_init(&ret->session, false);
 
@@ -354,6 +360,10 @@ selector_status set_interests(fd_selector s, int client_fd, int origin_fd, enum 
             break;
         case RESPONSE_WRITE:
             client_interest = OP_WRITE;
+            break;
+        case EXTERNAL_TRANSFORMATION:
+            origin_interest = OP_NOOP;
+            client_interest = OP_NOOP;
             break;
         default:
             break;
@@ -891,9 +901,10 @@ response_write(struct selector_key *key) {
     } else {
         buffer_read_adv(b, n);
         if (!buffer_can_read(b)) {
-            if (d->response_parser.state == response_mail) {
-                set_interests(key->s, key->fd, ATTACHMENT(key)->origin_fd, RESPONSE_READ);
-                ret = RESPONSE_READ;
+            if (d->response_parser.state == response_done && d->request.response->status == response_status_ok && d->request.cmd->id == retr) {
+                set_interests(key->s, key->fd, ATTACHMENT(key)->origin_fd, EXTERNAL_TRANSFORMATION);
+                //todo solo si estan prendidas if cmd == null
+                ret = EXTERNAL_TRANSFORMATION;
             } else {
                 ret = response_write_process(key, d);
             }
@@ -968,7 +979,8 @@ external_transformation_read(struct selector_key *key) {
 
     if(n > 0) {
         buffer_write_adv(b, n);
-        selector_status ss;
+        selector_set_interest(key->s, d->extern_write_fd, OP_WRITE);
+        selector_set_interest(key->s, d->origin_fd, OP_NOOP);
     } else {
         ret = ERROR;
     }
@@ -982,17 +994,18 @@ external_transformation_write(struct selector_key *key) {
     struct pop3 *d      = ATTACHMENT(key);
     enum pop3_state ret = EXTERNAL_TRANSFORMATION;
 
-    buffer *b = &d->read_buffer;
+    buffer *b = &d->extern_read_buffer;
     uint8_t *ptr;
     size_t  count;
     ssize_t  n;
 
-    ptr = buffer_write_ptr(b, &count);
+    ptr = buffer_read_ptr(b, &count);
     n = send(d->client_fd, ptr, count, 0);
 
     if(n > 0) {
-        buffer_write_adv(b, n);
-        selector_status ss;
+        buffer_read_adv(b, n);
+        selector_set_interest(key->s, d->extern_read_fd, OP_READ);
+        selector_set_interest(key->s, d->client_fd, OP_NOOP);
     } else {
         ret = ERROR;
     }
@@ -1004,6 +1017,58 @@ static void
 external_transformation_close(const unsigned state, struct selector_key *key) {
 
 }
+
+/////////////////////////////////////////
+
+void ext_read(struct selector_key * key){
+    struct pop3 *d      = ATTACHMENT(key);
+
+    buffer *b = &d->extern_read_buffer;
+    uint8_t *ptr;
+    size_t  count;
+    ssize_t  n;
+
+    ptr = buffer_write_ptr(b, &count);
+    n = read(d->extern_read_fd, ptr, count);
+
+    if (n < 0)
+        perror("recv");
+
+    buffer_write_adv(b, n);
+
+    selector_set_interest(key->s, d->extern_read_fd, OP_NOOP);
+    selector_set_interest(key->s, d->client_fd, OP_WRITE);
+}
+
+void ext_write(struct selector_key * key){
+    struct pop3 *d      = ATTACHMENT(key);
+
+    buffer *b = &d->write_buffer;
+    uint8_t *ptr;
+    size_t  count;
+    ssize_t  n;
+
+    ptr = buffer_read_ptr(b, &count);
+    n = write(d->extern_write_fd, ptr, count);
+
+    if (n < 0)
+        perror("send");
+    buffer_read_adv(b, n);
+
+    selector_set_interest(key->s, d->extern_write_fd, OP_NOOP);
+    selector_set_interest(key->s, d->origin_fd, OP_READ);
+}
+
+void ext_close(struct selector_key * key){
+
+}
+
+static const struct fd_handler ext_handler = {
+        .handle_read   = ext_read,
+        .handle_write  = ext_write,
+        .handle_close  = ext_close,
+        .handle_block  = NULL,
+};
 
 /** definición de handlers para cada estado */
 static const struct state_definition client_statbl[] = {
@@ -1163,45 +1228,6 @@ char *concat_string(char *variable, char *value) {
     return ret;
 }
 
-void ext_read(struct selector_key * key){
-    struct pop3 *d      = ATTACHMENT(key);
-
-    buffer *b = &d->read_buffer;
-    uint8_t *ptr;
-    size_t  count;
-    ssize_t  n;
-
-    ptr = buffer_write_ptr(b, &count);
-    n = recv(d->extern_read_fd, ptr, count, 0);
-
-    buffer_write_adv(b, n);
-}
-
-void ext_write(struct selector_key * key){
-    struct pop3 *d      = ATTACHMENT(key);
-
-    buffer *b = &d->write_buffer;
-    uint8_t *ptr;
-    size_t  count;
-    ssize_t  n;
-
-    ptr = buffer_read_ptr(b, &count);
-    n = send(d->extern_write_fd, ptr, count, 0);
-
-    buffer_read_adv(b, n);
-}
-
-void ext_close(struct selector_key * key){
-
-}
-
-static const struct fd_handler ext_handler = {
-        .handle_read   = ext_read,
-        .handle_write  = ext_write,
-        .handle_close  = ext_close,
-        .handle_block  = NULL,
-};
-
 int
 open_external_transformation(struct selector_key * key, struct pop3_session * session) {
 
@@ -1244,23 +1270,23 @@ open_external_transformation(struct selector_key * key, struct pop3_session * se
             free(environment[i++]);
         }
         struct pop3 * data = ATTACHMENT(key);
-        if (selector_register(key->s, fd[0], &ext_handler, OP_WRITE, data) == 0 &&
+        if (selector_register(key->s, fd[0], &ext_handler, OP_READ, data) == 0 &&
                 selector_fd_set_nio(fd[0]) == 0){
-            data->extern_write_fd = fd[0];
+            data->extern_read_fd = fd[0];
         }else{
             close(fd[0]);
             close(fd[1]);
             return -1;
-        } // write to.
-        if (selector_register(key->s, fd[1], &ext_handler, OP_READ, data) == 0 &&
+        } // read from.
+        if (selector_register(key->s, fd[1], &ext_handler, OP_WRITE, data) == 0 &&
                 selector_fd_set_nio(fd[1]) == 0){
-            data->extern_read_fd = fd[1];
+            data->extern_write_fd = fd[1];
         }else{
             selector_unregister_fd(key->s, fd[0]);
             close(fd[0]);
             close(fd[1]);
             return -1;
-        } // read from.
+        } // write to.
         return 0;
     }
 }
