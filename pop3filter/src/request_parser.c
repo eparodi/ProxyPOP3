@@ -131,6 +131,10 @@ request_consume(buffer *b, struct request_parser *p, bool *errored) {
         while(buffer_can_read(b) && c != '\n') {
             c = buffer_read(b);
         }
+
+        if (c != '\n') {
+            st = request_cmd;
+        }
     }
 
     return st;
