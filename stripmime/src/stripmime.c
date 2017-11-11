@@ -61,8 +61,45 @@ struct ctx {
     bool           *filtered_msg_detected;
 };
 
+
+void mime_parser_destroy(struct Tree *mime_tree){
+    struct TreeNode* node = mime_tree->first;
+    struct TreeNode* children;
+    struct TreeNode* tmp;
+    while(node != NULL){
+        children = node->children;
+        while(children != NULL){
+            tmp = children;
+            parser_destroy(children->parser);
+            children = children->next;
+            free(tmp);
+        }
+        tmp = node;
+        parser_destroy(node->parser);
+        node = node->next;
+        free(node);
+    }
+    free(mime_tree);
+}
+
 static bool T = true;
 static bool F = false;
+
+
+void
+mime_parser_reset(struct Tree* mime_tree){
+    struct TreeNode* node = mime_tree->first;
+    struct TreeNode* children;
+    while(node != NULL){
+        children = node->children;
+        while(children != NULL){
+            parser_reset(children->parser);
+            children = children->next;
+        }
+        parser_reset(node->parser);
+        node = node->next;
+    }
+}
 
 void
 setContextType(struct ctx* ctx){
@@ -245,6 +282,7 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
             case MIME_MSG_VALUE_END:
                 // si parseabamos Content-Type ya terminamos
                 ctx->msg_content_type_field_detected = 0;
+                ctx->filtered_msg_detected = &T;
                 break;
         }
         e = e->next;
@@ -269,6 +307,7 @@ pop3_multi(struct ctx *ctx, const uint8_t c) {
             case POP3_MULTI_FIN:
                 // arrancamos de vuelta
                 parser_reset(ctx->msg);
+                mime_parser_reset(ctx->mime_tree);
                 ctx->msg_content_type_field_detected = NULL;
                 break;
         }
@@ -312,5 +351,6 @@ stripmime(int argc, const char **argv, struct Tree* tree) {
     parser_destroy(ctx.multi);
     parser_destroy(ctx.msg);
     parser_destroy(ctx.ctype_header);
+    mime_parser_destroy(ctx.mime_tree);
     parser_utils_strcmpi_destroy(&media_header_def);
 }
