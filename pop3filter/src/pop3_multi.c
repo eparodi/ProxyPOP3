@@ -52,6 +52,7 @@ fin(struct parser_event *ret, const uint8_t c) {
 
 static const struct parser_state_transition ST_NEWLINE[] =  {
     {.when = '.',        .dest = DOT,         .act1 = wait,},
+    {.when = '\r',       .dest = CR,          .act1 = wait,},
     {.when = ANY,        .dest = BYTE,        .act1 = byte,},
 };
 
