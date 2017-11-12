@@ -816,7 +816,8 @@ response_init(const unsigned state, struct selector_key *key) {
     response_parser_init(&d->response_parser);
 }
 
-/** Lee la respuesta del origin server. Si la respuesta corresponde al comando retr y se cumplen las condiciones,
+/**
+ * Lee la respuesta del origin server. Si la respuesta corresponde al comando retr y se cumplen las condiciones,
  *  se ejecuta una transformacion externa
  */
 static unsigned
@@ -837,11 +838,13 @@ response_read(struct selector_key *key) {
         buffer_write_adv(b, n);
         enum response_state st = response_consume(b, d->wb, &d->response_parser, &error);
 
-        // se termino de leer la primera linea y luego viene un mail
-        if (d->response_parser.first_line_done && st == response_mail) {
+        // se termino de leer la primera linea
+        if (d->response_parser.first_line_done) {
             d->response_parser.first_line_done = false;
+
             // si el comando era un retr y se cumplen las condiciones, disparamos la transformacion externa
-            if (d->request->response->status == response_status_ok && d->request->cmd->id == retr) {
+            if (st == response_mail && d->request->response->status == response_status_ok
+                && d->request->cmd->id == retr) {
                 if (parameters->et_activated && parameters->filter_command != NULL) {
                     selector_status ss = SELECTOR_SUCCESS;
                     ss |= selector_set_interest_key(key, OP_NOOP);
@@ -855,11 +858,10 @@ response_read(struct selector_key *key) {
                     return ss == SELECTOR_SUCCESS ? EXTERNAL_TRANSFORMATION : ERROR;
                 }
             }
-        }
 
-        //else termino de consumir el buffer
-        d->response_parser.first_line_done = false;
-        st = response_consume(b, d->wb, &d->response_parser, &error);
+            //consumimos el resto de la respuesta
+            st = response_consume(b, d->wb, &d->response_parser, &error);
+        }
 
         selector_status ss = SELECTOR_SUCCESS;
         ss |= selector_set_interest_key(key, OP_NOOP);
@@ -896,7 +898,14 @@ response_write(struct selector_key *key) {
     } else {
         buffer_read_adv(b, n);
         if (!buffer_can_read(b)) {
-            ret = response_process(key, d);
+            if (d->response_parser.state != response_done) {
+                selector_status ss = SELECTOR_SUCCESS;
+                ss |= selector_set_interest_key(key, OP_NOOP);
+                ss |= selector_set_interest(key->s, ATTACHMENT(key)->origin_fd, OP_READ);
+                ret = ss == SELECTOR_SUCCESS ? RESPONSE : ERROR;
+            } else {
+                ret = response_process(key, d);
+            }
         }
     }
 
