@@ -54,11 +54,14 @@ struct ctx {
 
     struct TreeNode* subtype;
 
+    struct parser* boundary;
+
     /* ¿hemos detectado si el field-name que estamos procesando refiere
      * a Content-Type?. Utilizando dentro msg para los field-name.
      */
     bool           *msg_content_type_field_detected;
     bool           *filtered_msg_detected;
+    bool           *boundary_detected;
 };
 
 
@@ -72,14 +75,14 @@ void mime_parser_destroy(struct Tree *mime_tree){
             tmp = children;
             if(children->parser != NULL){
                 parser_destroy(children->parser);
-              //parser_utils_strcmpi_destroy(children->def);
+              parser_utils_strcmpi_destroy(children->def);
             }
             children = children->next;
             free(tmp);
         }
         tmp = node;
         parser_destroy(node->parser);
-        //parser_utils_strcmpi_destroy(node->def);
+        parser_utils_strcmpi_destroy(node->def);
         node = node->next;
         free(tmp);
     }
@@ -164,6 +167,27 @@ parser_feed_subtype (struct TreeNode* node, const uint8_t c){
     return global_event;
 }
 
+
+static void store_boundary_parameter(struct ctx*ctx, const uint8_t c){
+    return;
+}
+
+static void parameter_boundary(struct ctx *ctx, const uint8_t c){
+    const struct parser_event* e = parser_feed_subtype(ctx->boundary,c);
+    do{
+        debug("5.Boundary", parser_utils_strcmpi_event, e);
+        switch(e->type){
+            case STRING_CMP_EQ:
+                ctx->boundary_detected = &T;
+                break;
+            case STRING_CMP_NEQ:
+                ctx->boundary_detected = &F;
+                break;
+        }
+        e = e->next;
+    }while(e != NULL);
+}
+
 static void
 content_type_subtype(struct ctx* ctx, const uint8_t c){
     const struct parser_event* e = parser_feed_subtype(ctx->subtype,c);
@@ -223,11 +247,23 @@ content_type_value(struct ctx*ctx, const uint8_t c){
                 if(ctx->filtered_msg_detected != 0
                    || *ctx->filtered_msg_detected){
                     setContextType(ctx);
+                    break;
                 }
+            case MIME_PARAMETER:
+                parameter_boundary(ctx,c);
+                break;
+            case MIME_BOUNDARY_PARAM:
+                if(ctx->boundary_detected != 0
+                        || *ctx->boundary_detected)
+                    for(int i=0;i<e->n;i++){
+                        store_boundary_parameter(ctx,e->data[i]);
+                    }
         }
         e = e->next;
     } while (e != NULL);
 }
+
+
 /* Detecta si un header-field-name equivale a Content-Type.
  * Deja el valor en `ctx->msg_content_type_field_detected'. Tres valores
  * posibles: NULL (no tenemos información suficiente todavia, por ejemplo
@@ -290,6 +326,8 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                 ctx->msg_content_type_field_detected = 0;
                 ctx->filtered_msg_detected = &T;
                 break;
+            case MIME_MSG_BODY:
+                break;
         }
         e = e->next;
     } while (e != NULL);
@@ -335,13 +373,17 @@ stripmime(int argc, const char **argv, struct Tree* tree) {
     struct parser_definition media_header_def =
             parser_utils_strcmpi("content-type");
 
+    struct parser_definition boundary_def =
+            parser_utils_strcmpi("boundary");
+
     struct ctx ctx = {
-        .multi        = parser_init(no_class, pop3_multi_parser()),
-        .msg          = parser_init(init_char_class(), mime_message_parser()),
-        .ctype_header = parser_init(no_class, &media_header_def),
-        .filtered_msg = parser_init(init_char_class(), mime_type_parser()),
-        .mime_tree    = tree,
-        .filtered_msg_detected = &T,
+            .multi        = parser_init(no_class, pop3_multi_parser()),
+            .msg          = parser_init(init_char_class(), mime_message_parser()),
+            .ctype_header = parser_init(no_class, &media_header_def),
+            .filtered_msg = parser_init(init_char_class(), mime_type_parser()),
+            .boundary     = parser_init(no_class, &boundary_def),
+            .mime_tree    = tree,
+            .filtered_msg_detected = &T,
     };
 
     uint8_t data[4096];
@@ -357,6 +399,7 @@ stripmime(int argc, const char **argv, struct Tree* tree) {
     parser_destroy(ctx.msg);
     parser_destroy(ctx.ctype_header);
     parser_destroy(ctx.filtered_msg);
+    parser_destroy(ctx.boundary);
     mime_parser_destroy(ctx.mime_tree);
     parser_utils_strcmpi_destroy(&media_header_def);
 }

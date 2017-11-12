@@ -19,6 +19,15 @@ enum mime_type_event_type {
     /* caracter del subtipo de un MIME type. payload: caracter. */
     MIME_TYPE_SUBTYPE,
 
+    /* el subtipo esta completo. payload: ';'.*/
+    MIME_PARAMETER,
+
+    MIME_PARAMETER_START,
+
+    MIME_BOUNDARY_END,
+
+    MIME_BOUNDARY_PARAM,
+
     /* se recibió un caracter que no se esperaba */
     MIME_TYPE_UNEXPECTED,
 };
