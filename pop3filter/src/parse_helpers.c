@@ -36,12 +36,8 @@ char ** sctp_parse_cmd(buffer *b, struct management *data, int *args, int *st_er
 
         length = sctp_recvmsg(data->client_fd, ptr, count, NULL, 0, &sndrcvinfo, &flags);
         if (length <= 0){
-            if (errno == EWOULDBLOCK)
-                return 0;
-            else{
-                *st_err = ERROR_DISCONNECT;
-                return NULL;
-            }
+            *st_err = ERROR_DISCONNECT;
+            return NULL;
         }
 
         if (error)

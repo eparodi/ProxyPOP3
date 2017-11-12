@@ -8,10 +8,14 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <netdb.h>
+#include <limits.h>
+#include <errno.h>
 #include "pop3ctl.h"
 #define MAX_BUFFER 1024
 
 options ctl_parameters;
+
+long parse_port(char * port_name, char *optarg) ;
 
 void resolv_addr() {
 
@@ -34,7 +38,7 @@ void resolv_addr() {
 
     if (0 != getaddrinfo(ctl_parameters->management_address, mgmt_buff, &hints,
                          &ctl_parameters->managementaddrinfo)){
-        sprintf(stderr,"Domain name resolution error\n");
+        fprintf(stderr,"Domain name resolution error\n");
     }
 }
 
@@ -58,7 +62,7 @@ options parse_ctl_options(int argc, char **argv) {
                 break;
                 /* Management SCTP port */
             case 'o':
-                ctl_parameters->management_port = (uint16_t) atoi(optarg);
+                ctl_parameters->management_port = (uint16_t) parse_port("Management", optarg);
                 break;
             case '?':
                 if (optopt == 'L' || optopt == 'o')
@@ -84,11 +88,11 @@ options parse_ctl_options(int argc, char **argv) {
 int
 main (int argc, char* argv[]){
 
-    options opt = parse_ctl_options(argc,argv);
+    parse_ctl_options(argc,argv);
 
     int connection_socket, ret;
-    struct sockaddr_in servaddr;
-    struct sctp_status status;
+    //struct sockaddr_in server_address;
+    //struct sctp_status status;
     char buffer[MAX_BUFFER + 1];
     size_t datalen = 0;
 
@@ -116,7 +120,7 @@ main (int argc, char* argv[]){
     /* Receive hello */
     sctp_recvmsg(connection_socket,
                  (void *) recv_buffer, MAX_BUFFER, NULL, 0, 0, 0);
-    printf(recv_buffer);
+    printf("%s", recv_buffer);
 
     while(true){
 
@@ -148,11 +152,26 @@ main (int argc, char* argv[]){
 
         recv_buffer[ret] = '\0';
 
-        printf(recv_buffer);
+        printf("%s", recv_buffer);
 
         if (strcmp(recv_buffer,"+OK: Goodbye.\n") == 0){
             close(connection_socket);
             exit(0);
         }
     }
+}
+
+long parse_port(char * port_name, char *optarg) {
+
+    char *end     = 0;
+    const long sl = strtol(optarg, &end, 10);
+
+    if (end == optarg|| '\0' != *end
+        || ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno)
+        || sl < 0 || sl > USHRT_MAX) {
+        fprintf(stderr, "%s port should be an integer: %s\n", port_name, optarg);
+        exit(1);
+    }
+
+    return sl;
 }

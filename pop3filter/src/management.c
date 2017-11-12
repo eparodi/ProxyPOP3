@@ -44,6 +44,7 @@ management_new(const int client_fd){
     buffer_init(&ret->buffer_read , N(ret->raw_buffer_read) ,ret->raw_buffer_read);
     ret->status = ST_HELO;
     ret->error  = PARSE_OK;
+    ret->argc = 0;
     return ret;
 }
 
