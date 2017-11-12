@@ -10,6 +10,7 @@
 
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <ctype.h>
 
 #include "pop3_session.h"
 #include "buffer.h"
@@ -819,6 +820,16 @@ response_init(const unsigned state, struct selector_key *key) {
     response_parser_init(&d->response_parser);
 }
 
+char * to_upper(char *str) {
+    char * aux = str;
+    while (*aux != 0) {
+        *aux = (char)toupper(*aux);
+        aux++;
+    }
+
+    return str;
+}
+
 /**
  * Lee la respuesta del origin server. Si la respuesta corresponde al comando retr y se cumplen las condiciones,
  *  se ejecuta una transformacion externa
@@ -873,6 +884,58 @@ response_read(struct selector_key *key) {
 
         if (response_is_done(st, 0)) {
             log_response(d->request->response);
+///////////////////////////////////////////////////TODO pasar a otr funcion
+            if (d->request->cmd->id == capa) {
+                // busco pipelinig
+                to_upper(d->response_parser.capa_response);
+                char * capabilities = d->response_parser.capa_response;
+                // siempre pasar la needle en upper case
+                char * needle = "PIPELINING";
+
+                struct pop3 *p = ATTACHMENT(key);
+
+                if (strstr(capabilities, needle) != NULL) {
+                    p->session.pipelining = true;
+                    return ret;
+                } else {
+                    p->session.pipelining = false;
+                    size_t capa_length = strlen(capabilities);
+                    size_t needle_length = strlen(needle);
+
+                    char * eom = "\r\n.\r\n";
+                    size_t eom_length = strlen(eom);
+
+                    char * new_capa = calloc(capa_length - 3 + needle_length + eom_length + 1, sizeof(char));
+                    if (new_capa == NULL) {
+                        return ERROR;
+                    }
+                    // copio to-do menos los ultimos 3 caracteres
+                    memcpy(new_capa, capabilities, capa_length - 3);
+                    // agrego la needle
+                    memcpy(new_capa + capa_length - 3, needle, needle_length);
+                    // agrego eom
+                    memcpy(new_capa + capa_length - 3 + needle_length, eom, eom_length);
+
+                    printf("%s", new_capa);
+
+                    free(capabilities);
+
+                    d->response_parser.capa_response = new_capa;
+
+                    //leer el buffer y copiar la nueva respuesta
+                    while (buffer_can_read(d->wb)) {
+                        buffer_read(d->wb);
+                    }
+
+                    uint8_t *ptr1;
+                    size_t   count1;
+
+                    ptr1 = buffer_write_ptr(d->wb, &count1);
+                    strcpy((char *)ptr1, new_capa);
+                    buffer_write_adv(d->wb, strlen(new_capa));
+                }
+            }
+///////////////////////////////////////////////////////////////////////
         }
     } else {
         ret = ERROR;

@@ -47,6 +47,8 @@ struct response_parser {
 
     bool                  first_line_done;
     struct parser         *pop3_multi_parser;
+
+    char                  *capa_response;
 };
 
 /** inicializa el parser */

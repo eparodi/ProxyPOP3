@@ -102,13 +102,28 @@ plist(const uint8_t c, struct response_parser* p) {
     return ret;
 }
 
+#define BLOCK_SIZE  20
+
 enum response_state
 pcapa(const uint8_t c, struct response_parser* p) {
     const struct parser_event * e = parser_feed(p->pop3_multi_parser, c);
     enum response_state ret = response_capa;
 
+    // save capabilities to struct
+    p->capa_response[p->j++] = c;
+    if (p->j % BLOCK_SIZE == 0) {
+        p->capa_response = realloc(p->capa_response, strlen(p->capa_response) + BLOCK_SIZE);
+        memset(p->capa_response + p->j, 0, BLOCK_SIZE);
+    }
+
     switch (e->type) {
         case POP3_MULTI_FIN:
+
+            if (p->j % BLOCK_SIZE == 0) {
+                p->capa_response = realloc(p->capa_response, strlen(p->capa_response) + 1);
+                memset(p->capa_response + p->j, 0, 1);
+            }
+
             ret = response_done;
             break;
     }
@@ -142,6 +157,12 @@ response_parser_init (struct response_parser* p) {
     }
 
     parser_reset(p->pop3_multi_parser);
+
+    if (p->capa_response == NULL) {
+        p->capa_response = calloc(BLOCK_SIZE, sizeof(char));
+        p->j = 0;
+    }
+
 }
 
 extern enum response_state
