@@ -16,12 +16,38 @@ options parameters;
 void print_help();
 void print_version();
 
-/* TODO: help */
 /**
  * Prints the help
  */
 void print_help(){
-    printf("HELP");
+    printf("Uso: pop3filter [OPTION] <servidor-origen>\n");
+    printf("Proxy POP3 que filtra mensajes de <origin-server>.\n");
+    printf("\n");
+    printf("Opciones:\n");
+    printf("%-30s","\t-e archivo-de-error");
+    printf("especifica el archivo de error donde se redirecciona stderr de las "
+                   "ejecuciones de los filtros\n");
+    printf("%-30s", "\t-h");
+    printf("imprime la ayuda y termina\n");
+    printf("%-30s", "\t-l direccion_pop3");
+    printf("establece la dirección donde servirá el proxy\n");
+    printf("%-30s", "\t-L direccion_management");
+    printf("establece la dirección donde servirá el servicio de management\n");
+    printf("%-30s", "\t-m mensaje_de_reemplazo");
+    printf("mensaje testigo dejado cuando una parte es reemplazada por el "
+                   "filtro\n");
+    printf("%-30s", "\t-M media_types_censurables");
+    printf("lista de media types censurados\n");
+    printf("%-30s", "\t-o puerto_de_management");
+    printf("puerto SCTP donde servirá el servicio de management\n");
+    printf("%-30s", "\t-p puerto_local");
+    printf("puerto TCP donde escuchará conexiones entrantes POP3\n");
+    printf("%-30s", "\t-P puerto_origen");
+    printf("puerto TCP donde se encuentra el servidor POP3 origen\n");
+    printf("%-30s", "\t-t cmd");
+    printf("comando utilizado para las transofmraciones externas\n");
+    printf("%-30s", "\t-v");
+    printf("imprime la versión y termina\n");
 }
 
 /**
@@ -37,7 +63,9 @@ resolv_addr(char *address, uint16_t port, struct addrinfo **addrinfo);
 int
 get_user_pass();
 
-options parse_options(int argc, char **argv) {
+void parse_media_types(struct media_types *mt_struct, char *mt_string);
+
+void parse_options(int argc, char **argv) {
 
     /* Initialize default values */
     parameters                      = malloc(sizeof(*parameters));
@@ -55,18 +83,7 @@ options parse_options(int argc, char **argv) {
     parameters->listenadddrinfo     = 0;
     parameters->managementaddrinfo  = 0;
 
-    char * type = malloc(10*sizeof(char));
-    char * subtype = malloc(10*sizeof(char));
-    struct media_types * mt = new_media_types();
-    strcpy(type, "text");
-    strcpy(subtype, "plain");
-    add_media_type(mt, type, subtype);
-    type = malloc(10*sizeof(char));
-    subtype = malloc(10*sizeof(char));
-    strcpy(type, "image");
-    strcpy(subtype, "*");
-    add_media_type(mt, type, subtype);
-    parameters->filtered_media_types = mt;
+    parameters->filtered_media_types = new_media_types();
 
     int index = 0;
     int c;
@@ -111,7 +128,7 @@ options parse_options(int argc, char **argv) {
 
                 break;
             case 'M':
-                parameters->filtered_media_types = optarg;
+                parse_media_types(parameters->filtered_media_types, optarg);
                 break;
                 /* Management SCTP port */
             case 'o':
@@ -170,7 +187,10 @@ options parse_options(int argc, char **argv) {
     resolv_addr(parameters->management_address, parameters->management_port,
                 &parameters->managementaddrinfo);
 
-    return parameters;
+}
+
+void parse_media_types(struct media_types *mt_struct, char *mt_string) {
+
 }
 
 void
