@@ -851,9 +851,14 @@ response_write(struct selector_key *key) {
         if (!buffer_can_read(b)) {
             if (d->response_parser.state == response_done &&
                     d->request->response->status == response_status_ok && d->request->cmd->id == retr) {
-                set_interests(key->s, key->fd, ATTACHMENT(key)->origin_fd, EXTERNAL_TRANSFORMATION);
-                //todo solo si estan prendidas if cmd == null
-                ret = EXTERNAL_TRANSFORMATION;
+                if (parameters->et_activated && parameters->filter_command != NULL) {
+                    selector_status ss = SELECTOR_SUCCESS;
+                    ss |= selector_set_interest_key(key, OP_NOOP);
+                    ss |= selector_set_interest(key->s, ATTACHMENT(key)->origin_fd, OP_NOOP);
+                    ret = ss == SELECTOR_SUCCESS ? EXTERNAL_TRANSFORMATION : ERROR;
+                } else {
+                    ret = response_process(key, d);
+                }
             } else {
                 ret = response_process(key, d);
             }

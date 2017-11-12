@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <netinet/in.h>
+#include <stdbool.h>
 
 struct options {
     uint16_t port;
@@ -14,6 +15,7 @@ struct options {
     struct media_types * filtered_media_types;
     char * origin_server;
     uint16_t origin_port;
+    bool et_activated;
     char * filter_command;
     char * version;
     struct addrinfo * listenadddrinfo;

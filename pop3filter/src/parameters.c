@@ -45,6 +45,7 @@ options parse_options(int argc, char **argv) {
     parameters->listen_address      = "0.0.0.0";
     parameters->replacement_msg     = "Parte reemplazada.";
     parameters->origin_port         = 110;
+    parameters->et_activated        = true;
     parameters->filter_command      = "grep -i -v ^Subject:"; //TODO: pasarlo a Null
     parameters->version             = "0.0";
     parameters->listenadddrinfo     = 0;

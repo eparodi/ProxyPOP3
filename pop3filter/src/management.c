@@ -235,7 +235,16 @@ int parse_pass(struct management *data, char ** cmd){
 
 int parse_config(struct management *data, char ** cmd){
     if(strcasecmp("CMD", cmd[0]) == 0){
-        if (data->argc != 2)
+        if (data->argc == 1) {
+            parameters->et_activated = !parameters->et_activated;
+            if (parameters->et_activated) {
+                send_ok(data, "External transformations activated.");
+            } else {
+                send_ok(data, "External transformations deactivated.");
+            }
+            return 0;
+        }
+        else if (data->argc != 2)
             goto fail;
         char * str = malloc(sizeof(char) * strlen(cmd[1]));
         strcpy(str, cmd[1]);
