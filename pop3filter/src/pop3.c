@@ -1003,6 +1003,11 @@ void ext_write(struct selector_key * key){
 
     if (n < 0)
         perror("send");
+    if (n < BUFFER_SIZE){
+        selector_unregister_fd(key->s, d->extern_write_fd);
+        return;
+    }
+
     buffer_read_adv(b, n);
 
     selector_set_interest(key->s, d->extern_write_fd, OP_NOOP);
@@ -1010,7 +1015,7 @@ void ext_write(struct selector_key * key){
 }
 
 void ext_close(struct selector_key * key){
-
+    close(key->fd);
 }
 
 static const struct fd_handler ext_handler = {
@@ -1144,7 +1149,6 @@ char *concat_string(char *variable, char *value) {
 int
 open_external_transformation(struct selector_key * key, struct pop3_session * session) {
 
-    // TODO: change filter_medias.
     char *filter_medias         = concat_string("FILTER_MEDIAS=",
                                                 get_types_list(parameters->filtered_media_types, ','));
     char *filter_msg            = concat_string("FILTER_MSG=",
@@ -1164,40 +1168,47 @@ open_external_transformation(struct selector_key * key, struct pop3_session * se
                                    pop3_filter_version,
                                    pop3_username, pop3_server, NULL};
 
-    int fd[2];
-    pipe(fd);
+    int fd_read[2];
+    int fd_write[2];
+
+    pipe(fd_read);
+    pipe(fd_write);
 
     if ((pid = fork()) == -1)
         perror("fork error");
     else if (pid == 0) {
-        dup2(fd[0], 0);
-        dup2(fd[1], 1);
-        int value = execve("/bin/bash", args, NULL);
+        dup2(fd_write[0], STDIN_FILENO);
+        dup2(fd_read[1], STDOUT_FILENO);
+        close(fd_write[1]);
+        close(fd_read[0]);
+        int value = execve("/bin/bash", args, environment);
         perror("execve");
         if (value == -1){
             fprintf(stderr, "Error\n");
         }
     }else{
+        close(fd_write[0]);
+        close(fd_read[1]);
         int i = 0;
         while(environment[i] != NULL){
             free(environment[i++]);
         }
         struct pop3 * data = ATTACHMENT(key);
-        if (selector_register(key->s, fd[0], &ext_handler, OP_READ, data) == 0 &&
-                selector_fd_set_nio(fd[0]) == 0){
-            data->extern_read_fd = fd[0];
+        if (selector_register(key->s, fd_read[0], &ext_handler, OP_READ, data) == 0 &&
+                selector_fd_set_nio(fd_read[0]) == 0){
+            data->extern_read_fd = fd_read[0];
         }else{
-            close(fd[0]);
-            close(fd[1]);
+            close(fd_read[0]);
+            close(fd_write[1]);
             return -1;
         } // read from.
-        if (selector_register(key->s, fd[1], &ext_handler, OP_WRITE, data) == 0 &&
-                selector_fd_set_nio(fd[1]) == 0){
-            data->extern_write_fd = fd[1];
+        if (selector_register(key->s, fd_write[1], &ext_handler, OP_WRITE, data) == 0 &&
+                selector_fd_set_nio(fd_write[1]) == 0){
+            data->extern_write_fd = fd_write[1];
         }else{
-            selector_unregister_fd(key->s, fd[0]);
-            close(fd[0]);
-            close(fd[1]);
+            selector_unregister_fd(key->s, fd_write[1]);
+            close(fd_read[0]);
+            close(fd_write[1]);
             return -1;
         } // write to.
         return 0;
