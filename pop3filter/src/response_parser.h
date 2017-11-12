@@ -23,6 +23,12 @@ enum response_state {
     response_list,
     response_capa,
 
+    //response_uidl,
+    //response_top,
+
+    // todo usar este estado generico
+    response_multiline,
+
     // apartir de aca están done
     response_done,
 

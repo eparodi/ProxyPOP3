@@ -168,6 +168,7 @@ int split_commands(struct management *data){
     if (data->error == ERROR_DISCONNECT){
         return -1;
     }
+    return 1;
 }
 
 int parse_commands(struct management *data){

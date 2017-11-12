@@ -211,7 +211,7 @@ resolv_addr(char *address, uint16_t port, struct addrinfo ** addrinfo) {
              port);
     if (0 != getaddrinfo(address, buff, &hints,
                          addrinfo)){
-        sprintf(stderr,"Domain name resolution error\n");
+        fprintf(stderr,"Domain name resolution error\n");
     }
 }
 

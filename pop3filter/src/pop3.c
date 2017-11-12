@@ -798,8 +798,8 @@ request_write(struct selector_key *key) {
 
 static void
 request_close(const unsigned state, struct selector_key *key) {
-    struct request_st * d = &ATTACHMENT(key)->client.request;
-    //request_parser_close(&d->request_parser); //UNDEFINED??????
+    //struct request_st * d = &ATTACHMENT(key)->client.request;
+    //request_parser_close(&d->request_parser); //TODO: UNDEFINED??????
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -949,8 +949,8 @@ response_process(struct selector_key *key, struct response_st * d) {
 
 static void
 response_close(const unsigned state, struct selector_key *key) {
-    struct response_st * d = &ATTACHMENT(key)->orig.response;
-    //response_parser_close(&d->response_parser);   //undefined GG again
+    //struct response_st * d = &ATTACHMENT(key)->orig.response;
+    //response_parser_close(&d->response_parser);   //TODO: undefined GG again
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -983,19 +983,19 @@ external_transformation_init(const unsigned state, struct selector_key *key) {
     et->status = open_external_transformation(key, &ATTACHMENT(key)->session);
 
     buffer  *b = et->wb;
-    uint8_t *ptr;
+    char * ptr;
     size_t   count;
-    char * err_msg = "-ERR could not open external transformation.\r\n";
-    char * ok_msg  = "+OK sending mail.\r\n";
+    const char * err_msg = "-ERR could not open external transformation.\r\n";
+    const char * ok_msg  = "+OK sending mail.\r\n";
 
-    ptr = buffer_write_ptr(b, &count);
+    ptr = (char*) buffer_write_ptr(b, &count);
     if (et->status == et_status_err) {
-        sprintf((char *)ptr, err_msg);
+        sprintf(ptr, "-ERR could not open external transformation.\r\n");
         buffer_write_adv(b, strlen(err_msg));
 
         selector_set_interest(key->s, *et->client_fd, OP_WRITE);
     } else {
-        sprintf((char *)ptr, ok_msg);
+        sprintf(ptr, "+OK sending mail.\r\n");
         buffer_write_adv(b, strlen(ok_msg));
     }
 }
@@ -1319,5 +1319,6 @@ open_external_transformation(struct selector_key * key, struct pop3_session * se
 
         return et_status_ok;
     }
+    return et_status_err;
 }
 

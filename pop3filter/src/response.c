@@ -29,7 +29,7 @@ static const struct pop3_response invalid_response = {
 
 const struct pop3_response *
 get_response(const char *response) {
-    for (int i = 0; i < N(responses); i++) {
+    for (unsigned i = 0; i < N(responses); i++) {
         if (strcmp(response, responses[i].name) == 0) {
             return &responses[i];
         }

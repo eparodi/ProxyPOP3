@@ -87,7 +87,7 @@ static bool strcmpi(const char * str1, const char * str2) {
 
 const struct pop3_request_cmd * get_cmd(const char *cmd) {
 
-    for (int i = 0; i < N(commands); i++) {
+    for (unsigned i = 0; i < N(commands); i++) {
         if (strcmpi(cmd, commands[i].name)) {
             return &commands[i];
         }

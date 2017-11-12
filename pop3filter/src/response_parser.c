@@ -58,6 +58,12 @@ newline(const uint8_t c, struct response_parser *p) {
             case capa:
                 ret = response_capa;
                 break;
+            case uidl:
+            case top:
+                ret = response_multiline;
+                break;
+            default:
+                break;
         }
     }
 
@@ -110,6 +116,20 @@ pcapa(const uint8_t c, struct response_parser* p) {
     return ret;
 }
 
+enum response_state
+multiline(const uint8_t c, struct response_parser* p) {
+    const struct parser_event * e = parser_feed(p->pop3_multi_parser, c);
+    enum response_state ret = response_multiline;
+
+    switch (e->type) {
+        case POP3_MULTI_FIN:
+            ret = response_done;
+            break;
+    }
+
+    return ret;
+}
+
 extern void
 response_parser_init (struct response_parser* p) {
     memset(p->status_buffer, 0, STATUS_SIZE);
@@ -146,6 +166,9 @@ response_parser_feed (struct response_parser* p, const uint8_t c) {
             break;
         case response_capa:
             next = pcapa(c, p);
+            break;
+        case response_multiline:
+            next = multiline(c, p);
             break;
         case response_done:
         case response_error:
