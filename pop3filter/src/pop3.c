@@ -21,6 +21,7 @@
 #include "response_parser.h"
 #include "media_types.h"
 #include "log.h"
+#include "pop3_multi.h"
 
 #define N(x) (sizeof(x)/sizeof((x)[0]))
 
@@ -98,6 +99,24 @@ struct response_st {
     struct response_parser      response_parser;
 };
 
+/** usado por EXTERNAL_TRANSFORMATION */
+enum et_status {
+    et_status_ok,
+    et_status_err,
+};
+
+struct external_transformation {
+    enum et_status              status;
+
+    buffer                      *rb, *wb;
+    buffer                      *ext_rb, *ext_wb;
+
+    int                         *client_fd, *origin_fd;
+    int                         *ext_read_fd, *ext_write_fd;
+
+    struct parser               *parser;
+};
+
 
 /** Tamanio de los buffers de I/O */
 #define BUFFER_SIZE 2048
@@ -132,7 +151,6 @@ struct pop3 {
 
     struct pop3_session           session;
 
-
     /** maquinas de estados */
     struct state_machine          stm;
 
@@ -145,6 +163,8 @@ struct pop3 {
         struct hello_st           hello;
         struct response_st        response;
     } orig;
+
+    struct external_transformation  et;
 
     /** buffers para ser usados read_buffer, write_buffer.*/
     uint8_t raw_buff_a[BUFFER_SIZE], raw_buff_b[BUFFER_SIZE];
@@ -715,7 +735,7 @@ request_process(struct selector_key *key, struct request_st * d) {
 
         //reseteamos el parser
         request_parser_init(&d->request_parser);
-        set_interests(key->s, key->fd, ATTACHMENT(key)->origin_fd, REQUEST);
+        //set_interests(key->s, key->fd, ATTACHMENT(key)->origin_fd, REQUEST);
         return REQUEST;
     }
 
@@ -795,7 +815,9 @@ response_init(const unsigned state, struct selector_key *key) {
     response_parser_init(&d->response_parser);
 }
 
-/** Lee la respuesta del origin server*/
+/** Lee la respuesta del origin server. Si la respuesta corresponde al comando retr y se cumplen las condiciones,
+ *  se ejecuta una transformacion externa
+ */
 static unsigned
 response_read(struct selector_key *key) {
     struct response_st *d = &ATTACHMENT(key)->orig.response;
@@ -813,6 +835,24 @@ response_read(struct selector_key *key) {
     if(n > 0) {
         buffer_write_adv(b, n);
         enum response_state st = response_consume(b, d->wb, &d->response_parser, &error);
+
+        // se termino de leer la primera linea y luego viene un mail
+        if (d->response_parser.first_line_done && st == response_mail) {
+            d->response_parser.first_line_done = false;
+            // si el comando era un retr y se cumplen las condiciones, disparamos la transformacion externa
+            if (d->request->response->status == response_status_ok && d->request->cmd->id == retr) {
+                if (parameters->et_activated && parameters->filter_command != NULL) {
+                    selector_status ss = SELECTOR_SUCCESS;
+                    ss |= selector_set_interest_key(key, OP_NOOP);
+                    ss |= selector_set_interest(key->s, ATTACHMENT(key)->origin_fd, OP_NOOP);
+                    return ss == SELECTOR_SUCCESS ? EXTERNAL_TRANSFORMATION : ERROR;
+                }
+            }
+        }
+
+        //else termino de consumir el buffer
+        d->response_parser.first_line_done = false;
+        st = response_consume(b, d->wb, &d->response_parser, &error);
 
         selector_status ss = SELECTOR_SUCCESS;
         ss |= selector_set_interest_key(key, OP_NOOP);
@@ -849,19 +889,7 @@ response_write(struct selector_key *key) {
     } else {
         buffer_read_adv(b, n);
         if (!buffer_can_read(b)) {
-            if (d->response_parser.state == response_done &&
-                    d->request->response->status == response_status_ok && d->request->cmd->id == retr) {
-                if (parameters->et_activated && parameters->filter_command != NULL) {
-                    selector_status ss = SELECTOR_SUCCESS;
-                    ss |= selector_set_interest_key(key, OP_NOOP);
-                    ss |= selector_set_interest(key->s, ATTACHMENT(key)->origin_fd, OP_NOOP);
-                    ret = ss == SELECTOR_SUCCESS ? EXTERNAL_TRANSFORMATION : ERROR;
-                } else {
-                    ret = response_process(key, d);
-                }
-            } else {
-                ret = response_process(key, d);
-            }
+            ret = response_process(key, d);
         }
     }
 
@@ -910,32 +938,61 @@ response_close(const unsigned state, struct selector_key *key) {
 // EXTERNAL TRANSFORMATION
 ////////////////////////////////////////////////////////////////////////////////
 
-int open_external_transformation(struct selector_key * key, struct pop3_session * session);
+enum et_status open_external_transformation(struct selector_key * key, struct pop3_session * session);
 
 /** Inicializa las variables del estado EXTERNAL_TRANSFORMATION */
 static void
 external_transformation_init(const unsigned state, struct selector_key *key) {
-    open_external_transformation(key, &ATTACHMENT(key)->session);
+    struct external_transformation *et = &ATTACHMENT(key)->et;
+
+    et->rb           = &ATTACHMENT(key)->write_buffer;
+    et->wb           = &ATTACHMENT(key)->extern_read_buffer;
+    et->ext_rb       = &ATTACHMENT(key)->extern_read_buffer;
+    et->ext_wb       = &ATTACHMENT(key)->write_buffer;
+
+    et->origin_fd    = &ATTACHMENT(key)->origin_fd;
+    et->client_fd    = &ATTACHMENT(key)->client_fd;
+    et->ext_read_fd  = &ATTACHMENT(key)->extern_read_fd;
+    et->ext_write_fd = &ATTACHMENT(key)->extern_write_fd;
+
+    if (et->parser == NULL) {
+        et->parser = parser_init(parser_no_classes(), pop3_multi_parser());
+    }
+
+    parser_reset(et->parser);
+
+    et->status = open_external_transformation(key, &ATTACHMENT(key)->session);
 }
 
-// leer del server y mandarselo al programa externo
+/** Lee el mail del server */
 static unsigned
 external_transformation_read(struct selector_key *key) {
-    struct pop3 *d      = ATTACHMENT(key);
-    enum pop3_state ret = EXTERNAL_TRANSFORMATION;
+    struct external_transformation *et  = &ATTACHMENT(key)->et;
+    enum pop3_state ret                 = EXTERNAL_TRANSFORMATION;
 
-    buffer *b = &d->write_buffer;
+    buffer  *b                          = et->rb;
     uint8_t *ptr;
-    size_t  count;
+    size_t   count;
     ssize_t  n;
 
     ptr = buffer_write_ptr(b, &count);
-    n = recv(d->origin_fd, ptr, count, 0);
+    n   = recv(*et->origin_fd, ptr, count, 0);
 
     if(n > 0) {
         buffer_write_adv(b, n);
-        selector_set_interest(key->s, d->extern_write_fd, OP_WRITE);
-        selector_set_interest(key->s, d->origin_fd, OP_NOOP);
+
+        while (buffer_can_read(b)) {
+            const struct parser_event *e = parser_feed(et->parser, buffer_read(b));
+            switch (e->type) {
+                case POP3_MULTI_FIN:
+                    fprintf(stderr, "TERMINE DE LEER EL MAIL\n");
+                    //TODO cerrar las pipes y volver al estado anterior
+                    break;
+            }
+        }
+
+        selector_set_interest(key->s, *et->ext_write_fd, OP_WRITE);
+        selector_set_interest(key->s, *et->origin_fd, OP_NOOP);
     } else {
         ret = ERROR;
     }
@@ -946,21 +1003,21 @@ external_transformation_read(struct selector_key *key) {
 //escribir en el cliente
 static unsigned
 external_transformation_write(struct selector_key *key) {
-    struct pop3 *d      = ATTACHMENT(key);
-    enum pop3_state ret = EXTERNAL_TRANSFORMATION;
+    struct external_transformation *et  = &ATTACHMENT(key)->et;
+    enum pop3_state ret                 = EXTERNAL_TRANSFORMATION;
 
-    buffer *b = &d->extern_read_buffer;
+    buffer  *b                          = et->ext_rb;
     uint8_t *ptr;
-    size_t  count;
+    size_t   count;
     ssize_t  n;
 
     ptr = buffer_read_ptr(b, &count);
-    n = send(d->client_fd, ptr, count, 0);
+    n   = send(*et->client_fd, ptr, count, 0);
 
     if(n > 0) {
         buffer_read_adv(b, n);
-        selector_set_interest(key->s, d->extern_read_fd, OP_READ);
-        selector_set_interest(key->s, d->client_fd, OP_NOOP);
+        selector_set_interest(key->s, *et->ext_read_fd, OP_READ);
+        selector_set_interest(key->s, *et->client_fd, OP_NOOP);
     } else {
         ret = ERROR;
     }
@@ -973,50 +1030,52 @@ external_transformation_close(const unsigned state, struct selector_key *key) {
 
 }
 
-/////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// EXTERNAL TRANSFORMATION HANDLERS
+////////////////////////////////////////////////////////////////////////////////
 
-void ext_read(struct selector_key * key){
-    struct pop3 *d      = ATTACHMENT(key);
+void ext_read(struct selector_key * key) {
+    struct external_transformation *et  = &ATTACHMENT(key)->et;
 
-    buffer *b = &d->extern_read_buffer;
+    buffer  *b                          = et->ext_rb;
     uint8_t *ptr;
-    size_t  count;
+    size_t   count;
     ssize_t  n;
 
     ptr = buffer_write_ptr(b, &count);
-    n = read(d->extern_read_fd, ptr, count);
+    n   = read(*et->ext_read_fd, ptr, count);
 
     if (n < 0)
         perror("recv");
 
     buffer_write_adv(b, n);
 
-    selector_set_interest(key->s, d->extern_read_fd, OP_NOOP);
-    selector_set_interest(key->s, d->client_fd, OP_WRITE);
+    selector_set_interest(key->s, *et->ext_read_fd, OP_NOOP);
+    selector_set_interest(key->s, *et->client_fd, OP_WRITE);
 }
 
 void ext_write(struct selector_key * key){
-    struct pop3 *d      = ATTACHMENT(key);
+    struct external_transformation *et  = &ATTACHMENT(key)->et;
 
-    buffer *b = &d->write_buffer;
+    buffer  *b                          = et->ext_wb;
     uint8_t *ptr;
-    size_t  count;
+    size_t   count;
     ssize_t  n;
 
     ptr = buffer_read_ptr(b, &count);
-    n = write(d->extern_write_fd, ptr, count);
+    n   = write(*et->ext_write_fd, ptr, count);
 
     if (n < 0)
         perror("send");
     if (n < BUFFER_SIZE){
-        selector_unregister_fd(key->s, d->extern_write_fd);
+        selector_unregister_fd(key->s, *et->ext_write_fd);
         return;
     }
 
     buffer_read_adv(b, n);
 
-    selector_set_interest(key->s, d->extern_write_fd, OP_NOOP);
-    selector_set_interest(key->s, d->origin_fd, OP_READ);
+    selector_set_interest(key->s, *et->ext_write_fd, OP_NOOP);
+    selector_set_interest(key->s, *et->origin_fd, OP_READ);
 }
 
 void ext_close(struct selector_key * key){
@@ -1087,7 +1146,7 @@ pop3_done(struct selector_key *key);
 static void
 pop3_read(struct selector_key *key) {
     struct state_machine *stm   = &ATTACHMENT(key)->stm;
-    const enum pop3_state st = stm_handler_read(stm, key);
+    const enum pop3_state st    = (enum pop3_state)stm_handler_read(stm, key);
 
     if(ERROR == st || DONE == st) {
         pop3_done(key);
@@ -1097,7 +1156,7 @@ pop3_read(struct selector_key *key) {
 static void
 pop3_write(struct selector_key *key) {
     struct state_machine *stm   = &ATTACHMENT(key)->stm;
-    const enum pop3_state st = stm_handler_write(stm, key);
+    const enum pop3_state st    = (enum pop3_state)stm_handler_write(stm, key);
 
     if(ERROR == st || DONE == st) {
         pop3_done(key);
@@ -1107,7 +1166,7 @@ pop3_write(struct selector_key *key) {
 static void
 pop3_block(struct selector_key *key) {
     struct state_machine *stm   = &ATTACHMENT(key)->stm;
-    const enum pop3_state st = stm_handler_block(stm, key);
+    const enum pop3_state st    = (enum pop3_state)stm_handler_block(stm, key);
 
     if(ERROR == st || DONE == st) {
         pop3_done(key);
@@ -1151,7 +1210,7 @@ char *concat_string(char *variable, char *value) {
     return ret;
 }
 
-int
+enum et_status
 open_external_transformation(struct selector_key * key, struct pop3_session * session) {
 
     char *filter_medias         = concat_string("FILTER_MEDIAS=",
@@ -1205,7 +1264,7 @@ open_external_transformation(struct selector_key * key, struct pop3_session * se
         }else{
             close(fd_read[0]);
             close(fd_write[1]);
-            return -1;
+            return et_status_err;
         } // read from.
         if (selector_register(key->s, fd_write[1], &ext_handler, OP_WRITE, data) == 0 &&
                 selector_fd_set_nio(fd_write[1]) == 0){
@@ -1214,9 +1273,10 @@ open_external_transformation(struct selector_key * key, struct pop3_session * se
             selector_unregister_fd(key->s, fd_write[1]);
             close(fd_read[0]);
             close(fd_write[1]);
-            return -1;
+            return et_status_err;
         } // write to.
-        return 0;
+
+        return et_status_ok;
     }
 }
 

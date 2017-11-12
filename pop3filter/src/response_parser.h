@@ -39,6 +39,7 @@ struct response_parser {
     char                  status_buffer[STATUS_SIZE];
     char                  description_buffer[DESCRIPTION_SIZE];
 
+    bool                  first_line_done;
     struct parser         *pop3_multi_parser;
 };
 

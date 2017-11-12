@@ -48,8 +48,7 @@ newline(const uint8_t c, struct response_parser *p) {
     if (p->request->response->status != response_status_err) {
         switch (p->request->cmd->id) {
             case retr:
-                //ret = response_mail;
-                ret = response_done;
+                ret = response_mail;
                 break;
             case list:
                 if (p->request->args == NULL) {
@@ -62,12 +61,15 @@ newline(const uint8_t c, struct response_parser *p) {
         }
     }
 
+    if (c == '\n') {
+        p->first_line_done = true;
+    }
+
     return c != '\n' ? response_error : ret;
 }
 
 enum response_state
 mail(const uint8_t c, struct response_parser* p) {
-    //TODO usar stripmime
     const struct parser_event * e = parser_feed(p->pop3_multi_parser, c);
     enum response_state ret = response_mail;
 
@@ -112,6 +114,7 @@ extern void
 response_parser_init (struct response_parser* p) {
     memset(p->status_buffer, 0, STATUS_SIZE);
     p->state = response_status_indicator;
+    p->first_line_done = false;
     p->i = 0;
 
     if (p->pop3_multi_parser == NULL) {
@@ -172,7 +175,7 @@ response_consume(buffer *b, buffer *wb, struct response_parser *p, bool *errored
         const uint8_t c = buffer_read(b);
         st = response_parser_feed(p, c);
         buffer_write(wb, c);
-        if(response_is_done(st, errored)) {
+        if(response_is_done(st, errored) || p->first_line_done) {   // si se termino la respuesta o se termino de leer la primera linea
             break;
         }
     }
