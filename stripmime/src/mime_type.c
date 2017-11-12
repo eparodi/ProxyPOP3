@@ -20,11 +20,10 @@
 enum state {
 	TYPE0,
     TYPE,
-    PARAMETER_START,
-    PARAMETER,
-    BOUNDARY_END,
-    BOUNDARY_PARAM,
     SUBTYPE,
+    PARAMETER,
+    //BOUNDARY_END,
+    FRONTIER,
     ERROR,
 };
 
@@ -81,8 +80,8 @@ boundary_end(struct parser_event *ret, const uint8_t c){
 };
 
 static void
-boundary_param(struct parser_event *ret, const uint8_t c){
-    ret->type   = MIME_BOUNDARY_PARAM;
+frontier(struct parser_event *ret, const uint8_t c){
+    ret->type   = MIME_FRONTIER;
     ret->n      = 1;
     ret->data[0]= c;
 }
@@ -106,20 +105,20 @@ static const struct parser_state_transition ST_TYPE[] =  {
 
 static const struct parser_state_transition ST_SUBTYPE[] =  {
 	{.when = TOKEN_LWSP,   				.dest = ERROR,          	           .act1 = unexpected,	      },
-    {.when = ';',                       .dest = MIME_PARAMETER_START,          .act1 = parameter_start,   },
+    {.when = ';',                       .dest = PARAMETER,               .act1 = parameter_start,   },
     {.when = TOKEN_REST_NAME_CHARS,		.dest = SUBTYPE,			           .act1 = subtype,	          },
     {.when = ANY, 						.dest = ERROR, 				           .act1 = unexpected,	      }
 };
 
 static const struct parser_state_transition ST_PARAMETER[] = {
     {.when = TOKEN_LWSP,                .dest = ERROR,               .act1 = unexpected,},
-    {.when = TOKEN_REST_NAME_CHARS,     .dest = MIME_PARAMETER,      .act1 = parameter, },
-    {.when = '=',                       .dest = MIME_BOUNDARY_PARAM, .act1 = boundary_end,},
+    {.when = TOKEN_REST_NAME_CHARS,     .dest = PARAMETER,           .act1 = parameter, },
+    {.when = '=',                       .dest = FRONTIER,      .act1 = boundary_end,},
     {.when = ANY,                       .dest = ERROR,               .act1 = unexpected,}
 };
 
-static const struct parser_state_transition ST_BOUNDARY_PARAMETER[] = {
-        {.when = TOKEN_REST_NAME_CHARS,     .dest = MIME_BOUNDARY_PARAM,    .act1 = boundary_param,},
+static const struct parser_state_transition ST_FRONTIER[] = {
+        {.when = TOKEN_REST_NAME_CHARS,     .dest = FRONTIER,         .act1 = frontier,},
         {.when = ANY,                       .dest = ERROR,                  .act1 = unexpected}
 };
 
@@ -134,9 +133,9 @@ static const struct parser_state_transition ST_ERROR[] =  {
 static const struct parser_state_transition *states [] = {
     ST_TYPE0,
     ST_TYPE,
-    ST_PARAMETER,
-    ST_BOUNDARY_PARAMETER,
     ST_SUBTYPE,
+    ST_PARAMETER,
+    ST_FRONTIER,
     ST_ERROR,
 };
 
@@ -145,9 +144,9 @@ static const struct parser_state_transition *states [] = {
 static const size_t states_n [] = {
     N(ST_TYPE0),
     N(ST_TYPE),
-    N(ST_PARAMETER),
-    N(ST_BOUNDARY_PARAMETER),
     N(ST_SUBTYPE),
+    N(ST_PARAMETER),
+    N(ST_FRONTIER),
     N(ST_ERROR),
 };
 
@@ -180,8 +179,16 @@ mime_type_event(enum mime_type_event_type type) {
             break;
         case MIME_PARAMETER_START:
             ret = "parameter_start(';')";
+            break;
         case MIME_PARAMETER:
             ret = "parameter(c)";
+            break;
+        case MIME_BOUNDARY_END:
+            ret = "boundary_end(c)";
+            break;
+        case MIME_FRONTIER:
+            ret = "boundary_param(c)";
+            break;
         case MIME_TYPE_UNEXPECTED:
             ret = "unexepected(c)";
             break;
