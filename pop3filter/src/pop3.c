@@ -1213,14 +1213,16 @@ char *concat_string(char *variable, char *value) {
 enum et_status
 open_external_transformation(struct selector_key * key, struct pop3_session * session) {
 
-    char *filter_medias         = concat_string("FILTER_MEDIAS=",
-                                                get_types_list(parameters->filtered_media_types, ','));
+    char *medias               = get_types_list(parameters->filtered_media_types, ',');
+    char *filter_medias         = concat_string("FILTER_MEDIAS=", medias);
     char *filter_msg            = concat_string("FILTER_MSG=",
                                                 parameters->replacement_msg);
     char *pop3_filter_version   = concat_string("POP3_FILTER_VERSION=",
                                                 parameters->version);
     char *pop3_username         = concat_string("POP3_USERNAME=", session->user);
     char *pop3_server           = concat_string("POP3_SERVER=", parameters->origin_server);
+
+    free(medias);
 
     pid_t pid;
     char * args[4];

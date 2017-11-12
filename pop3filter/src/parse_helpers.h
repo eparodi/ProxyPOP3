@@ -2,6 +2,7 @@
 #define TPE_PROTOS_PARSE_HELPERS_H
 
 #include "buffer.h"
+#include "management.h"
 
 enum helper_errors{
     PARSE_OK         = 0,
@@ -9,6 +10,9 @@ enum helper_errors{
     ERROR_DISCONNECT = 2,
     ERROR_WRONGARGS  = 3,
 };
+
+
+struct management;
 
 // char ** parse_text(buffer * b, char ** cmd, int args, int * args_found, bool * cmd_found);
 char ** sctp_parse_cmd(buffer *b, struct management *data, int *args, int *st_err);

@@ -34,6 +34,9 @@ void print_version() {
 void
 resolv_addr(char *address, uint16_t port, struct addrinfo **addrinfo);
 
+int
+get_user_pass();
+
 options parse_options(int argc, char **argv) {
 
     /* Initialize default values */
@@ -69,6 +72,11 @@ options parse_options(int argc, char **argv) {
 
     opterr = 0;
     int messages = 0;
+
+    if (get_user_pass() < 0){
+        fprintf (stderr, "There is a problem with the auth configuration");
+        exit(0);
+    }
 
     /* e: option e requires argument e:: optional argument */
     while ((c = getopt (argc, argv, "e:hl:L:m:M:o:p:P:t:v")) != -1){
@@ -183,6 +191,22 @@ resolv_addr(char *address, uint16_t port, struct addrinfo ** addrinfo) {
     }
 }
 
-options get_parameters(){
-    return parameters;
+#define MAX_USER_CHAR 255
+#define MAX_PASS_CHAR 255
+
+int
+get_user_pass(){
+    FILE * f = fopen("secret.txt", "r");
+    if (f == NULL)
+        return -1;
+    parameters->user = malloc(MAX_USER_CHAR * sizeof(char));
+    parameters->pass = malloc(MAX_PASS_CHAR * sizeof(char));
+    if (parameters->user == NULL || parameters->pass == NULL){
+        return -1;
+    }
+    int n = fscanf(f, "%s\n%s", parameters->user, parameters->pass);
+    if (n != 2)
+        return -1;
+    fclose(f);
+    return 1;
 }
