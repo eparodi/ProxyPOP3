@@ -20,6 +20,8 @@ struct options {
     char * version;
     struct addrinfo * listenadddrinfo;
     struct addrinfo * managementaddrinfo;
+    char * user;
+    char * pass;
 };
 
 typedef struct options * options;

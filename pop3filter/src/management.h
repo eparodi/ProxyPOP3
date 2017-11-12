@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include "selector.h"
 #include "buffer.h"
+#include "parse_helpers.h"
 
 #define BUFFER_SIZE 1024
 
@@ -30,11 +31,16 @@ struct management{
 
     parse_status                  status;
     int                           argc;
+    char **                       cmd;
+    enum helper_errors            error;
+
+    char *                        user;
 };
 
 void management_accept_connection(struct selector_key *key);
 
-int
-parse_commands(struct management *data);
+int split_commands(struct management *data);
+
+int parse_commands(struct management *data);
 
 #endif

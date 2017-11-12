@@ -7,7 +7,6 @@
 #include <netinet/sctp.h>
 
 #include "management.h"
-#include "parse_helpers.h"
 
 #define BLOCK 10
 #define POPG_ARGC_BLOCK 5 // Limit of arguments for POPG
@@ -19,6 +18,10 @@ char ** sctp_parse_cmd(buffer *b, struct management *data, int *args, int *st_er
     int argc = POPG_ARGC_BLOCK;
     char ** cmd = malloc(argc * sizeof(char *));
 
+    if (cmd == NULL){
+        return NULL;
+    }
+
     size_t count;
     uint8_t * ptr = buffer_write_ptr(&data->buffer_read, &count);
     ssize_t length;
@@ -27,9 +30,10 @@ char ** sctp_parse_cmd(buffer *b, struct management *data, int *args, int *st_er
     bool error = false;
     bool copying = false;
     bool quote = false;
-    int flags;
+    int flags = 0;
 
     while(true){
+
         length = sctp_recvmsg(data->client_fd, ptr, count, NULL, 0, &sndrcvinfo, &flags);
         if (length <= 0){
             if (errno == EWOULDBLOCK)
@@ -59,7 +63,6 @@ char ** sctp_parse_cmd(buffer *b, struct management *data, int *args, int *st_er
                             buffer_reset(b);
                             *st_err = ERROR_MALLOC;
                         }
-                        cmd = tmp;
                     }
                     copying = true;
                     cmd[current_arg] = malloc(BLOCK * sizeof(char));
