@@ -158,11 +158,12 @@ response_parser_init (struct response_parser* p) {
 
     parser_reset(p->pop3_multi_parser);
 
-    if (p->capa_response == NULL) {
-        p->capa_response = calloc(BLOCK_SIZE, sizeof(char));
-        p->j = 0;
+    if (p->capa_response != NULL) {
+        free(p->capa_response);
     }
 
+    p->capa_response = calloc(BLOCK_SIZE, sizeof(char));
+    p->j = 0;
 }
 
 extern enum response_state

@@ -916,7 +916,7 @@ response_read(struct selector_key *key) {
                     // agrego eom
                     memcpy(new_capa + capa_length - 3 + needle_length, eom, eom_length);
 
-                    printf("%s", new_capa);
+                    //printf("--%s--", new_capa);
 
                     free(capabilities);
 
