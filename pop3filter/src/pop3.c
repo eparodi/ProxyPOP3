@@ -103,6 +103,7 @@ struct response_st {
 enum et_status {
     et_status_ok,
     et_status_err,
+    et_status_done,
 };
 
 struct external_transformation {
@@ -845,6 +846,12 @@ response_read(struct selector_key *key) {
                     selector_status ss = SELECTOR_SUCCESS;
                     ss |= selector_set_interest_key(key, OP_NOOP);
                     ss |= selector_set_interest(key->s, ATTACHMENT(key)->origin_fd, OP_NOOP);
+
+                    // consumimos la primera linea
+                    while (buffer_can_read(d->wb)) {
+                        buffer_read(d->wb);
+                    }
+
                     return ss == SELECTOR_SUCCESS ? EXTERNAL_TRANSFORMATION : ERROR;
                 }
             }
@@ -962,6 +969,23 @@ external_transformation_init(const unsigned state, struct selector_key *key) {
     parser_reset(et->parser);
 
     et->status = open_external_transformation(key, &ATTACHMENT(key)->session);
+
+    buffer  *b = et->wb;
+    uint8_t *ptr;
+    size_t   count;
+    char * err_msg = "-ERR could not open external transformation.\r\n";
+    char * ok_msg  = "+OK sending mail.\r\n";
+
+    ptr = buffer_write_ptr(b, &count);
+    if (et->status == et_status_err) {
+        sprintf((char *)ptr, err_msg);
+        buffer_write_adv(b, strlen(err_msg));
+
+        selector_set_interest(key->s, *et->client_fd, OP_WRITE);
+    } else {
+        sprintf((char *)ptr, ok_msg);
+        buffer_write_adv(b, strlen(ok_msg));
+    }
 }
 
 /** Lee el mail del server */
@@ -980,17 +1004,6 @@ external_transformation_read(struct selector_key *key) {
 
     if(n > 0) {
         buffer_write_adv(b, n);
-
-        while (buffer_can_read(b)) {
-            const struct parser_event *e = parser_feed(et->parser, buffer_read(b));
-            switch (e->type) {
-                case POP3_MULTI_FIN:
-                    fprintf(stderr, "TERMINE DE LEER EL MAIL\n");
-                    //TODO cerrar las pipes y volver al estado anterior
-                    break;
-            }
-        }
-
         selector_set_interest(key->s, *et->ext_write_fd, OP_WRITE);
         selector_set_interest(key->s, *et->origin_fd, OP_NOOP);
     } else {
@@ -1018,6 +1031,10 @@ external_transformation_write(struct selector_key *key) {
         buffer_read_adv(b, n);
         selector_set_interest(key->s, *et->ext_read_fd, OP_READ);
         selector_set_interest(key->s, *et->client_fd, OP_NOOP);
+    } else if (et->status == et_status_done) {
+        selector_set_interest(key->s, *et->origin_fd, OP_NOOP);
+        selector_set_interest(key->s, *et->client_fd, OP_READ);
+        ret = REQUEST;
     } else {
         ret = ERROR;
     }
@@ -1045,12 +1062,15 @@ void ext_read(struct selector_key * key) {
     ptr = buffer_write_ptr(b, &count);
     n   = read(*et->ext_read_fd, ptr, count);
 
-    if (n < 0)
-        perror("recv");
+    if (n <= 0) {
+        //perror("read");
+        selector_unregister_fd(key->s, key->fd);
+    }
+    else if  (n > 0) {
+        selector_set_interest(key->s, *et->ext_read_fd, OP_NOOP);
+        buffer_write_adv(b, n);
+    }
 
-    buffer_write_adv(b, n);
-
-    selector_set_interest(key->s, *et->ext_read_fd, OP_NOOP);
     selector_set_interest(key->s, *et->client_fd, OP_WRITE);
 }
 
@@ -1065,20 +1085,27 @@ void ext_write(struct selector_key * key){
     ptr = buffer_read_ptr(b, &count);
     n   = write(*et->ext_write_fd, ptr, count);
 
-    if (n < 0)
-        perror("send");
-    if (n < BUFFER_SIZE){
-        selector_unregister_fd(key->s, *et->ext_write_fd);
-        return;
+    if (n > 0) {
+
+        while (buffer_can_read(b)) {
+            uint8_t c = buffer_read(b);
+            const struct parser_event *e = parser_feed(et->parser, c);
+            //buffer_write(b, c);
+            switch (e->type) {
+                case POP3_MULTI_FIN:
+                    log_response(ATTACHMENT(key)->orig.response.request->response);
+                    selector_unregister_fd(key->s, *et->ext_write_fd);
+                    et->status = et_status_done;
+                    return;
+            }
+        }
+
+        selector_set_interest(key->s, *et->ext_write_fd, OP_NOOP);
+        selector_set_interest(key->s, *et->origin_fd, OP_READ);
     }
-
-    buffer_read_adv(b, n);
-
-    selector_set_interest(key->s, *et->ext_write_fd, OP_NOOP);
-    selector_set_interest(key->s, *et->origin_fd, OP_READ);
 }
 
-void ext_close(struct selector_key * key){
+void ext_close(struct selector_key * key) {
     close(key->fd);
 }
 

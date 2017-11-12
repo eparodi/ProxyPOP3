@@ -49,7 +49,8 @@ options parse_options(int argc, char **argv) {
     parameters->replacement_msg     = "Parte reemplazada.";
     parameters->origin_port         = 110;
     parameters->et_activated        = true;
-    parameters->filter_command      = "grep -i -v ^Subject:"; //TODO: pasarlo a Null
+    //grep -i -v ^Subject:
+    parameters->filter_command      = NULL;
     parameters->version             = "0.0";
     parameters->listenadddrinfo     = 0;
     parameters->managementaddrinfo  = 0;
@@ -126,7 +127,9 @@ options parse_options(int argc, char **argv) {
                 break;
                 /* filter command */
             case 't': {
-                parameters->filter_command = optarg;
+                char * cmd = malloc(sizeof(char)*strlen(optarg));
+                strcpy(cmd, optarg);
+                parameters->filter_command = cmd;
             }
                 break;
             case 'v':
