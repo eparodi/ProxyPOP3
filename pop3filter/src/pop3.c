@@ -22,6 +22,7 @@
 #include "media_types.h"
 #include "log.h"
 #include "pop3_multi.h"
+#include "metrics.h"
 
 #define N(x) (sizeof(x)/sizeof((x)[0]))
 
@@ -308,6 +309,8 @@ pop3_passive_accept(struct selector_key *key) {
                               &client_addr_len);
 
     printf("client socket: %d\n", client);
+    metricas->concurrent_connections++;
+    metricas->historical_access++;
 
     if(client == -1) {
         goto fail;
@@ -1219,7 +1222,7 @@ pop3_done(struct selector_key *key) {
             close(fds[i]);
         }
     }
-
+    metricas->concurrent_connections--;
     log_connection(false, (const struct sockaddr *)&ATTACHMENT(key)->client_addr,
                    (const struct sockaddr *)&ATTACHMENT(key)->origin_addr);
 }

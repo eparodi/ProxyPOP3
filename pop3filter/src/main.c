@@ -12,6 +12,7 @@
 #include "parameters.h"
 #include "pop3.h"
 #include "management.h"
+#include "metrics.h"
 
 #define PENDING_CONNECTIONS 10
 
@@ -42,9 +43,13 @@ int create_master_socket(int protocol, struct addrinfo *addr) {
     return master_socket;
 }
 
+metrics metricas;
+
 int main (int argc, char ** argv) {
 
-    options opt = parse_options(argc,argv);
+    parse_options(argc,argv);
+
+    metricas = calloc(1, sizeof(*metricas));
 
     int master_tcp_socket = create_master_socket(
             IPPROTO_TCP, parameters->listenadddrinfo);
@@ -55,7 +60,7 @@ int main (int argc, char ** argv) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Listening on TCP %s:%d \n", opt->listen_address, opt->port);
+    printf("Listening on TCP %s:%d \n", parameters->listen_address, parameters->port);
 
     int master_sctp_socket = create_master_socket(
             IPPROTO_SCTP, parameters->managementaddrinfo);
@@ -66,8 +71,8 @@ int main (int argc, char ** argv) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Listening on SCTP %s:%d \n", opt->management_address,
-           opt->management_port);
+    printf("Listening on SCTP %s:%d \n", parameters->management_address,
+           parameters->management_port);
 
     //accept the incoming connection
     puts("Waiting for connections ...");

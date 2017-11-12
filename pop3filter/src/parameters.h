@@ -26,7 +26,7 @@ struct options {
 
 typedef struct options * options;
 
-options parse_options(int argc, char **argv);
+void parse_options(int argc, char **argv);
 
 extern options parameters;
 

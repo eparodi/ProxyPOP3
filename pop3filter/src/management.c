@@ -10,6 +10,7 @@
 #include "utils.h"
 #include "management.h"
 #include "media_types.h"
+#include "metrics.h"
 
 #define ATTACHMENT(key) ( (struct management *)(key)->data)
 #define N(x) (sizeof(x)/sizeof((x)[0]))
@@ -304,6 +305,19 @@ int parse_config(struct management *data){
         }else{
             send_ok(data, "type unbanned");
         }
+        return 0;
+    }else if(strcasecmp("STATS", cmd[0]) == 0) {
+        if (data->argc != 1)
+            goto fail;
+        char msg[200];
+        sprintf(msg, "\nMetrics\n"
+                        "Concurrent connections: %u\n"
+                        "Historical Access: %u\n"
+                        "Transfered Bytes: %lld\n"
+                        "Retrieved Messages: %u\n", metricas->concurrent_connections,
+                metricas->historical_access, metricas->transferred_bytes,
+                metricas->retrieved_messages);
+        send_ok(data, msg);
         return 0;
     }
     fail:

@@ -65,7 +65,7 @@ get_user_pass();
 
 void parse_media_types(struct media_types *mt_struct, char *mt_string);
 
-options parse_options(int argc, char **argv) {
+void parse_options(int argc, char **argv) {
 
     /* Initialize default values */
     parameters                      = malloc(sizeof(*parameters));
@@ -186,7 +186,6 @@ options parse_options(int argc, char **argv) {
     resolv_addr(parameters->management_address, parameters->management_port,
                 &parameters->managementaddrinfo);
 
-    return parameters;
 }
 
 void parse_media_types(struct media_types *mt_struct, char *mt_string) {
