@@ -6,6 +6,8 @@
 #include <arpa/inet.h>
 #include <memory.h>
 #include <netdb.h>
+#include <limits.h>
+#include <errno.h>
 
 #include "parameters.h"
 #include "media_types.h"
@@ -64,6 +66,8 @@ int
 get_user_pass();
 
 void parse_media_types(struct media_types *mt_struct, char *mt_string);
+
+long parse_port(char * port_name, char *optarg) ;
 
 void parse_options(int argc, char **argv) {
 
@@ -132,15 +136,15 @@ void parse_options(int argc, char **argv) {
                 break;
                 /* Management SCTP port */
             case 'o':
-                parameters->management_port = (uint16_t) atoi(optarg);
+                parameters->management_port = (uint16_t) parse_port("Management", optarg);
                 break;
                 /* proxy port */
             case 'p':
-                parameters->port = (uint16_t) atoi(optarg);
+                parameters->port = (uint16_t) parse_port("Listen", optarg);
                 break;
                 /* pop3 server port*/
             case 'P':
-                parameters->origin_port = (uint16_t) atoi(optarg);
+                parameters->origin_port = (uint16_t) parse_port("Origin server", optarg);
                 break;
                 /* filter command */
             case 't': {
@@ -187,6 +191,21 @@ void parse_options(int argc, char **argv) {
     resolv_addr(parameters->management_address, parameters->management_port,
                 &parameters->managementaddrinfo);
 
+}
+
+long parse_port(char * port_name, char *optarg) {
+
+    char *end     = 0;
+    const long sl = strtol(optarg, &end, 10);
+
+    if (end == optarg|| '\0' != *end
+        || ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno)
+        || sl < 0 || sl > USHRT_MAX) {
+        fprintf(stderr, "%s port should be an integer: %s\n", port_name, optarg);
+        exit(1);
+    }
+
+    return sl;
 }
 
 void parse_media_types(struct media_types *mt_struct, char *mt_string) {
