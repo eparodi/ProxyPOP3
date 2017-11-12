@@ -1006,7 +1006,7 @@ external_transformation_write(struct selector_key *key) {
     struct external_transformation *et  = &ATTACHMENT(key)->et;
     enum pop3_state ret                 = EXTERNAL_TRANSFORMATION;
 
-    buffer  *b                          = et->ext_rb;
+    buffer  *b                          = et->wb;
     uint8_t *ptr;
     size_t   count;
     ssize_t  n;
