@@ -90,7 +90,7 @@ main (int argc, char* argv[]){
     struct sockaddr_in servaddr;
     struct sctp_status status;
     char buffer[MAX_BUFFER + 1];
-    int datalen = 0;
+    size_t datalen = 0;
 
     connection_socket = socket (ctl_parameters->managementaddrinfo->ai_family,
                                 SOCK_STREAM, IPPROTO_SCTP);
@@ -128,7 +128,7 @@ main (int argc, char* argv[]){
         //buffer[12] = '\0';
         datalen = strlen(buffer);
 
-        ret = sctp_sendmsg(connection_socket, (void *) buffer, (size_t) datalen,
+        ret = sctp_sendmsg(connection_socket, (void *) buffer, datalen,
                            NULL, 0, 0, 0, 0, 0, 0);
 
         if (ret == 0){
@@ -147,6 +147,12 @@ main (int argc, char* argv[]){
         }
 
         recv_buffer[ret] = '\0';
+
         printf(recv_buffer);
+
+        if (strcmp(recv_buffer,"+OK: Goodbye.\n") == 0){
+            close(connection_socket);
+            exit(0);
+        }
     }
 }
