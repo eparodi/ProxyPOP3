@@ -93,7 +93,7 @@ main (int argc, char* argv[]){
     int connection_socket, ret;
     //struct sockaddr_in server_address;
     //struct sctp_status status;
-    char buffer[MAX_BUFFER + 1];
+    char buffer[MAX_BUFFER + 1] = {0};
     size_t datalen = 0;
 
     connection_socket = socket (ctl_parameters->managementaddrinfo->ai_family,
@@ -116,7 +116,7 @@ main (int argc, char* argv[]){
         exit(1);
     }
 
-    char  recv_buffer[MAX_BUFFER];
+    char  recv_buffer[MAX_BUFFER] = {0};
     /* Receive hello */
     sctp_recvmsg(connection_socket,
                  (void *) recv_buffer, MAX_BUFFER, NULL, 0, 0, 0);
