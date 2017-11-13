@@ -197,7 +197,6 @@ static void boundary_frontier_check(struct ctx*ctx, const uint8_t c){
         switch(e->type){
             case STRING_CMP_EQ:
                 ctx->frontier_detected = &T;
-                check_end_of_frontier(ctx,c);
                 break;
             case STRING_CMP_NEQ:
                 ctx->frontier_detected = &F;
@@ -210,9 +209,6 @@ static void store_boundary_parameter(struct ctx*ctx, const uint8_t c){
     add_character(ctx->boundary_frontier,c);
 }
 
-//static void boundary_parameter_end(struct ctx*ctx, const uint8_t c){
-//    end_frontier(ctx->boundary_frontier);
-//}
 
 static void parameter_boundary(struct ctx *ctx, const uint8_t c){
     const struct parser_event* e = parser_feed(ctx->boundary,c);
@@ -282,7 +278,7 @@ content_type_value(struct ctx*ctx, const uint8_t c){
                 break;
             case MIME_TYPE_SUBTYPE:
                 if(ctx->filtered_msg_detected != 0
-                   || *ctx->filtered_msg_detected)
+                   && *ctx->filtered_msg_detected)
                 content_type_subtype(ctx,c);
                 break;
             case MIME_TYPE_TYPE_END:
@@ -375,9 +371,9 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                         || *ctx->boundary_detected){
                     for(int i = 0; i < e->n; i++){
                         boundary_frontier_check(ctx,e->data[i]);
+                        check_end_of_frontier(ctx,e->data[i]);
                     }
                 }
-
                 break;
             case MIME_MSG_BODY_NEWLINE:
                 if(ctx->boundary_frontier != NULL){
