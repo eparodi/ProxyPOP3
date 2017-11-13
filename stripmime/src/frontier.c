@@ -14,10 +14,6 @@ frontier_init(){
         node->frontier_size = 2;
         node->frontier[0] = '-';
         node->frontier[1] = '-';
-        /*struct parser_definition* def = malloc(sizeof(*def));
-        struct parser_definition aux = parser_utils_strcmpi("--");
-        memcpy(def,&aux,sizeof(aux));
-        node->frontier_end_parser = parser_init(parser_no_classes(),def);*/
     }
     return node;
 }

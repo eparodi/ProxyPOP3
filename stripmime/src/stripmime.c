@@ -67,6 +67,7 @@ struct ctx {
     bool           *msg_content_type_field_detected;
     bool           *filtered_msg_detected;
     bool           *boundary_detected;
+    bool           *multipart_detected;
 };
 
 
@@ -128,6 +129,12 @@ setContextType(struct ctx* ctx){
             return;
         }
     }
+}
+
+static void
+frontier_reset(struct Frontier* frontier){
+    parser_reset(frontier->frontier_end_parser);
+    parser_reset(frontier->frontier_parser);
 }
 
 const struct parser_event *
@@ -292,7 +299,7 @@ content_type_value(struct ctx*ctx, const uint8_t c){
                 break;
             case MIME_FRONTIER:
                 if(ctx->boundary_detected != 0
-                        || *ctx->boundary_detected)
+                        && *ctx->boundary_detected)
                     for(int i=0;i<e->n;i++){
                         store_boundary_parameter(ctx,e->data[i]);
                     }
@@ -367,8 +374,8 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                 ctx->filtered_msg_detected = &T;
                 break;
             case MIME_MSG_BODY:
-                if(ctx->boundary_detected != 0
-                        || *ctx->boundary_detected){
+                if((*ctx->boundary_detected != 0
+                        && *ctx->boundary_detected) || *ctx->multipart_detected){
                     for(int i = 0; i < e->n; i++){
                         boundary_frontier_check(ctx,e->data[i]);
                         check_end_of_frontier(ctx,e->data[i]);
@@ -376,12 +383,25 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                 }
                 break;
             case MIME_MSG_BODY_NEWLINE:
-                if(ctx->boundary_frontier != NULL){
+                   if (*ctx->frontier_detected) {
+                       ctx->multipart_detected = &T;
+                       ctx->filtered_msg_detected = &F;
+                       ctx->boundary_detected = &F;
+                       ctx->frontier_detected = &F;
+                       ctx->frontier_end_detected = &F;
+                       ctx->subtype = NULL;
+                       ctx->msg_content_type_field_detected = NULL;
+                       parser_reset(ctx->msg);
+                       mime_parser_reset(ctx->mime_tree);
+                       parser_reset(ctx->filtered_msg);
+                       parser_reset(ctx->boundary);
+                       parser_reset(ctx->ctype_header);
+                       frontier_reset(ctx->boundary_frontier);
+                   }
                     if(ctx->boundary_frontier->frontier_parser != NULL){
                         parser_reset(ctx->boundary_frontier->frontier_parser);
                         parser_reset(ctx->boundary_frontier->frontier_end_parser);
                     }
-                }
                 break;
         }
         e = e->next;
@@ -435,6 +455,7 @@ stripmime(int argc, const char **argv, struct Tree* tree) {
             .boundary_detected     = &F,
             .frontier_end_detected = &F,
             .frontier_detected     = &F,
+            .multipart_detected    = &F,
     };
 
     uint8_t data[4096];

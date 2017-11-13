@@ -14,6 +14,9 @@ int main(int argc, char const *argv[]) {
 
 	struct Tree* tree = tree_init();
 
+	FILE * f = freopen("mail.txt","r", stdin);
+	if (f == NULL)
+		return -1;
 	if (tree == NULL)
 		return -1;
 	// char * filter_msg = getenv(FILTER_MSG);
