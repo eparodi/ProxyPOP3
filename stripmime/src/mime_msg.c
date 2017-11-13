@@ -142,6 +142,7 @@ static const struct parser_state_transition ST_NAME[] =  {
 };
 
 static const struct parser_state_transition ST_VALUE[] =  {
+        {.when = TOKEN_LWSP,    .dest = FOLD,    .act1 = value_fold,},
     {.when = '\r',       .dest = VALUE_CR,       .act1 = wait,      },
     {.when = ANY,        .dest = VALUE,          .act1 = value,     },
 };
