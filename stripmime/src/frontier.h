@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define FRONTIER_MAX 72 //70 plus '--'
+#define FRONTIER_MAX 75
 
 
 struct Frontier{

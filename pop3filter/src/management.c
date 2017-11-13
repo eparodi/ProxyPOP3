@@ -197,7 +197,7 @@ int parse_commands(struct management *data){
             break;
     }
     if (data->cmd != NULL)
-        free_cmd(data->cmd, act->args);
+        free_cmd(data->cmd, data->argc);
     return status;
 }
 

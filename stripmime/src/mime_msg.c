@@ -30,6 +30,7 @@ enum state {
     FOLD,
     VALUE_CRLF_CR,
     BODY,
+    BODY_CR,
     ERROR,
 };
 
@@ -119,7 +120,14 @@ static void
 body_newline(struct parser_event* ret, const uint8_t c){
     ret->type   = MIME_MSG_BODY_NEWLINE;
     ret->n      = 1;
-    ret->data[0]= '\n';
+    ret->data[0]= c;
+}
+
+static void
+body_crlf(struct parser_event* ret, const uint8_t c){
+    ret->type   = MIME_MSG_BODY_CR;
+    ret->n      = 1;
+    ret->data[0]= c;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -178,8 +186,13 @@ static const struct parser_state_transition ST_VALUE_CRLF_CR[] =  {
 };
 
 static const struct parser_state_transition ST_BODY[] =  {
-        {.when = '\n',    .dest = BODY,           .act1 = body_newline,},
+        {.when = '\r',    .dest = BODY_CR,           .act1 = body_crlf,},
         {.when = ANY,     .dest = BODY,           .act1 = body,},
+};
+
+static const struct parser_state_transition ST_BODY_CR[] = {
+        {.when = '\n',    .dest = BODY,             .act1 = body_newline},
+        {.when = ANY,     .dest = ERROR,             .act1 = unexpected,},
 };
 
 static const struct parser_state_transition ST_ERROR[] =  {
@@ -198,6 +211,7 @@ static const struct parser_state_transition *states [] = {
     ST_FOLD,
     ST_VALUE_CRLF_CR,
     ST_BODY,
+    ST_BODY_CR,
     ST_ERROR,
 };
 
@@ -212,6 +226,7 @@ static const size_t states_n [] = {
     N(ST_FOLD),
     N(ST_VALUE_CRLF_CR),
     N(ST_BODY),
+    N(ST_BODY_CR),
     N(ST_ERROR),
 };
 
@@ -252,6 +267,12 @@ mime_msg_event(enum mime_msg_event_type type) {
             break;
         case MIME_MSG_BODY:
             ret = "body(c)";
+            break;
+        case MIME_MSG_BODY_CR:
+            ret = "body_cr(c)";
+            break;
+        case MIME_MSG_BODY_NEWLINE:
+            ret = "body_newline(c)";
             break;
         case MIME_MSG_WAIT:
             ret = "wait()";

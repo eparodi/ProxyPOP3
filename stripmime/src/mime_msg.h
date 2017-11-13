@@ -34,6 +34,8 @@ enum mime_msg_event_type {
     /* se recibió un caracter que pertence al body */
     MIME_MSG_BODY,
 
+    MIME_MSG_BODY_CR,
+
     MIME_MSG_BODY_NEWLINE,
 
     /* no tenemos idea de qué hacer hasta que venga el proximo caracter */

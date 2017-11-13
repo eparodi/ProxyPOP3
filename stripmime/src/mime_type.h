@@ -26,7 +26,11 @@ enum mime_type_event_type {
 
     MIME_BOUNDARY_END,
 
+    MIME_FRONTIER_START,
+
     MIME_FRONTIER,
+
+    MIME_FRONTIER_END,
 
     /* se recibió un caracter que no se esperaba */
     MIME_TYPE_UNEXPECTED,

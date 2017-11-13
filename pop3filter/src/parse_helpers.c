@@ -60,6 +60,7 @@ char ** sctp_parse_cmd(buffer *b, struct management *data, int *args, int *st_er
                             buffer_reset(b);
                             *st_err = ERROR_MALLOC;
                         }
+                        cmd = tmp;
                     }
                     copying = true;
                     cmd[current_arg] = malloc(BLOCK * sizeof(char));

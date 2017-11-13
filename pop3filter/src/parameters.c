@@ -65,7 +65,7 @@ resolv_addr(char *address, uint16_t port, struct addrinfo **addrinfo);
 int
 get_user_pass();
 
-void parse_media_types(struct media_types *mt_struct, char *mt_string);
+int parse_media_types(struct media_types *mt_struct, const char *mt_string);
 
 long parse_port(char * port_name, char *optarg) ;
 
@@ -212,8 +212,93 @@ long parse_port(char * port_name, char *optarg) {
     return sl;
 }
 
-void parse_media_types(struct media_types *mt_struct, char *mt_string) {
+#define MEDIA_BLOCK_SIZE 20
 
+int parse_media_types(struct media_types *mt_struct, const char *mt_string) {
+    bool type    = true;
+    bool subtype = false;
+
+    int i = 0;
+    int str_size = 0;
+    int block_size = 0;
+    char * str_type = NULL;
+    char * used_str = str_type;
+
+    while(mt_string[i] != '\0'){
+        char c = mt_string[i];
+        switch(c){
+            case ',':
+                if (!subtype || str_size == 0){
+                    goto fail;
+                }
+                subtype = false;
+                type = true;
+                if (str_size == block_size) {
+                    void *tmp = realloc(used_str, (block_size + 1) * sizeof(char));
+                    if (tmp == NULL)
+                        goto fail;
+                    used_str = tmp;
+                }
+                used_str[str_size] = '\0';
+                if (add_media_type(mt_struct, str_type, used_str) < 0)
+                    return -1;
+                str_type = NULL;
+                used_str = NULL;
+                block_size = 0;
+                str_size = 0;
+                break;
+            case '/':
+                if (!type || str_size == 0){
+                    return -1;
+                }
+                type = false;
+                subtype = true;
+                if (str_size == block_size) {
+                    void *tmp = realloc(used_str, (block_size + 1) * sizeof(char));
+                    if (tmp == NULL)
+                        goto fail;
+                    used_str = tmp;
+                }
+                used_str[str_size] = '\0';
+                str_type = used_str;
+                used_str = NULL;
+                block_size = 0;
+                str_size = 0;
+                break;
+            default:
+                if (isspace(c)){
+                    return -1;
+                }
+                if (str_size == block_size){
+                    void * tmp = realloc(used_str, (block_size + MEDIA_BLOCK_SIZE) * sizeof(char));
+                    if (tmp == NULL)
+                        goto fail;
+                    used_str = tmp;
+                    block_size += MEDIA_BLOCK_SIZE;
+                }
+                used_str[str_size++] = c;
+                break;
+        }
+        i++;
+    }
+    if (str_size == block_size) {
+        void *tmp = realloc(used_str, (block_size + 1) * sizeof(char));
+        if (tmp == NULL)
+            goto fail;
+        used_str = tmp;
+    }
+
+    used_str[str_size] = '\0';
+    if (add_media_type(mt_struct, str_type, used_str) < 0)
+        return -1;
+
+    return 0;
+    fail:
+    if (str_type == NULL)
+        free(str_type);
+    if (used_str == NULL)
+        free(used_str);
+    return -1;
 }
 
 void

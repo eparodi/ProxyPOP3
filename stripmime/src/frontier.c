@@ -14,10 +14,6 @@ frontier_init(){
         node->frontier_size = 2;
         node->frontier[0] = '-';
         node->frontier[1] = '-';
-        struct parser_definition* def = malloc(sizeof(*def));
-        struct parser_definition aux = parser_utils_strcmpi("--");
-        memcpy(def,&aux,sizeof(aux));
-        node->frontier_end_parser = parser_init(parser_no_classes(),def);
     }
     return node;
 }
@@ -25,11 +21,19 @@ frontier_init(){
 void
 end_frontier(struct Frontier* frontier){
     if(frontier != NULL){
+        frontier->frontier[frontier->frontier_size] = 0;
         struct parser_definition* def = malloc(sizeof(*def));
         struct parser_definition aux = parser_utils_strcmpi(frontier->frontier);
         memcpy(def,&aux,sizeof(aux));
         frontier->frontier_parser = parser_init(parser_no_classes(),def);
         frontier->frontier_parser_def = def;
+        frontier->frontier[frontier->frontier_size] = '-';
+        frontier->frontier[frontier->frontier_size+1] = '-';
+        frontier->frontier[frontier->frontier_size+2] = 0;
+        struct parser_definition* def_end = malloc(sizeof(*def_end));
+        struct parser_definition aux_end = parser_utils_strcmpi(frontier->frontier);
+        memcpy(def_end,&aux_end,sizeof(aux_end));
+        frontier->frontier_end_parser = parser_init(parser_no_classes(), def_end);
     }
 }
 
