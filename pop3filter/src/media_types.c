@@ -141,6 +141,8 @@ int delete_media_type(struct media_types * mt, char * type, char * subtype){
             if (p == NULL){
                 node->first = a;
             }
+            if (strcmp("*", subtype) == 0)
+                node->wildcard = false;
             free(n->subtype);
             free(n);
             return 1;
