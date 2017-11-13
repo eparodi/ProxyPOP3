@@ -165,7 +165,7 @@ mime_type_parser(void) {
 
 const char *
 mime_type_event(enum mime_type_event_type type) {
-    const char *ret;
+    const char *ret = NULL;
 
     switch(type) {
         case MIME_TYPE_TYPE:

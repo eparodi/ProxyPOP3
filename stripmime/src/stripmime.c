@@ -210,9 +210,9 @@ static void store_boundary_parameter(struct ctx*ctx, const uint8_t c){
     add_character(ctx->boundary_frontier,c);
 }
 
-static void boundary_parameter_end(struct ctx*ctx, const uint8_t c){
-    end_frontier(ctx->boundary_frontier);
-}
+//static void boundary_parameter_end(struct ctx*ctx, const uint8_t c){
+//    end_frontier(ctx->boundary_frontier);
+//}
 
 static void parameter_boundary(struct ctx *ctx, const uint8_t c){
     const struct parser_event* e = parser_feed(ctx->boundary,c);

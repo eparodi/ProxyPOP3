@@ -14,10 +14,13 @@ int main(int argc, char const *argv[]) {
 
 	struct Tree* tree = tree_init();
 
-	char * filter_msg = getenv(FILTER_MSG);
+	if (tree == NULL)
+		return -1;
+	// char * filter_msg = getenv(FILTER_MSG);
 
 	if (filter_medias == NULL) {
 		fprintf(stderr, "Error: No filter medias specified\n");
+		free(tree);
 		return -1;
 	}
 

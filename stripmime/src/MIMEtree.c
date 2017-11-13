@@ -14,10 +14,9 @@ tree_init(void){
 	struct Tree* tree = malloc(sizeof(*tree));
 	if(tree != NULL){
         memset(tree, 0, sizeof(*tree));
-    }
-    return tree;
-
 	}
+	return tree;
+}
 
 struct TreeNode*
 newNode(char* name){

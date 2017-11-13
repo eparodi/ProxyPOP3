@@ -123,7 +123,7 @@ parser_utils_strcmpi_destroy(const struct parser_definition *p) {
 
 const char *
 parser_utils_strcmpi_event(enum string_cmp_event_type type) {
-    const char *ret;
+    const char *ret = NULL;
 
     switch(type) {
         case STRING_CMP_EQ:

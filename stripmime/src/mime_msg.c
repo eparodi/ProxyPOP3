@@ -228,7 +228,7 @@ mime_message_parser(void) {
 
 const char *
 mime_msg_event(enum mime_msg_event_type type) {
-    const char *ret;
+    const char *ret = NULL;
 
     switch(type) {
         case MIME_MSG_NAME:
@@ -257,6 +257,8 @@ mime_msg_event(enum mime_msg_event_type type) {
             break;
         case MIME_MSG_UNEXPECTED:
             ret = "unexepected(c)";
+            break;
+        default:
             break;
     }
     return ret;
