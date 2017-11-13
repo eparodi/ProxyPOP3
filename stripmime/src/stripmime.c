@@ -383,12 +383,15 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                 }
                 break;
             case MIME_MSG_BODY_NEWLINE:
-                   if (*ctx->frontier_detected) {
+                if(*ctx->frontier_end_detected && !*ctx->frontier_detected){
+                    ctx->multipart_detected = &F;
+                }
+                   if (ctx->frontier_detected != 0 && *ctx->frontier_detected) {
                        ctx->multipart_detected = &T;
                        ctx->filtered_msg_detected = &F;
                        ctx->boundary_detected = &F;
-                       ctx->frontier_detected = &F;
-                       ctx->frontier_end_detected = &F;
+                       ctx->frontier_detected = NULL;
+                       ctx->frontier_end_detected = NULL;
                        ctx->subtype = NULL;
                        ctx->msg_content_type_field_detected = NULL;
                        parser_reset(ctx->msg);
@@ -451,10 +454,10 @@ stripmime(int argc, const char **argv, struct Tree* tree) {
             .boundary     = parser_init(no_class, &boundary_def),
             .mime_tree    = tree,
             .boundary_frontier = frontier_init(),
-            .filtered_msg_detected = &T,
-            .boundary_detected     = &F,
-            .frontier_end_detected = &F,
-            .frontier_detected     = &F,
+            .filtered_msg_detected = NULL,
+            .boundary_detected     = NULL,
+            .frontier_end_detected = NULL,
+            .frontier_detected     = NULL,
             .multipart_detected    = &F,
     };
 

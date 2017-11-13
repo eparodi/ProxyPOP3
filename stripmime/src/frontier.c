@@ -21,6 +21,7 @@ frontier_init(){
 void
 end_frontier(struct Frontier* frontier){
     if(frontier != NULL){
+        frontier->frontier[frontier->frontier_size] = 0;
         struct parser_definition* def = malloc(sizeof(*def));
         struct parser_definition aux = parser_utils_strcmpi(frontier->frontier);
         memcpy(def,&aux,sizeof(aux));
@@ -28,6 +29,7 @@ end_frontier(struct Frontier* frontier){
         frontier->frontier_parser_def = def;
         frontier->frontier[frontier->frontier_size] = '-';
         frontier->frontier[frontier->frontier_size+1] = '-';
+        frontier->frontier[frontier->frontier_size+2] = 0;
         struct parser_definition* def_end = malloc(sizeof(*def_end));
         struct parser_definition aux_end = parser_utils_strcmpi(frontier->frontier);
         memcpy(def_end,&aux_end,sizeof(aux_end));
