@@ -10,6 +10,7 @@ struct Frontier{
     char frontier[FRONTIER_MAX];
     uint8_t frontier_size;
     struct parser* frontier_parser;
+    struct parser* frontier_end_parser;
     struct parser_definition* frontier_parser_def;
 };
 

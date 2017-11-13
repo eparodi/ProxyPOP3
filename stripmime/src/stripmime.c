@@ -62,6 +62,7 @@ struct ctx {
     /* ¿hemos detectado si el field-name que estamos procesando refiere
      * a Content-Type?. Utilizando dentro msg para los field-name.
      */
+    bool           *frontier_end_detected;
     bool           *frontier_detected;
     bool           *msg_content_type_field_detected;
     bool           *filtered_msg_detected;
@@ -171,6 +172,22 @@ parser_feed_subtype (struct TreeNode* node, const uint8_t c){
     return global_event;
 }
 
+static void
+check_end_of_frontier(struct ctx*ctx, const uint8_t c){
+    const struct parser_event* e = parser_feed(ctx->boundary_frontier->frontier_end_parser, c);
+    do{
+        debug("7.Body", parser_utils_strcmpi_event, e);
+        switch(e->type){
+            case STRING_CMP_EQ:
+                ctx->frontier_end_detected = &T;
+                break;
+            case STRING_CMP_NEQ:
+                ctx->frontier_end_detected = &F;
+                break;
+        }
+        e = e->next;
+    }while(e != NULL);
+}
 
 
 static void boundary_frontier_check(struct ctx*ctx, const uint8_t c){
@@ -180,6 +197,7 @@ static void boundary_frontier_check(struct ctx*ctx, const uint8_t c){
         switch(e->type){
             case STRING_CMP_EQ:
                 ctx->frontier_detected = &T;
+                check_end_of_frontier(ctx,c);
                 break;
             case STRING_CMP_NEQ:
                 ctx->frontier_detected = &F;
@@ -192,9 +210,9 @@ static void store_boundary_parameter(struct ctx*ctx, const uint8_t c){
     add_character(ctx->boundary_frontier,c);
 }
 
-//static void boundary_parameter_end(struct ctx*ctx, const uint8_t c){
-//    end_frontier(ctx->boundary_frontier);
-//}
+static void boundary_parameter_end(struct ctx*ctx, const uint8_t c){
+    end_frontier(ctx->boundary_frontier);
+}
 
 static void parameter_boundary(struct ctx *ctx, const uint8_t c){
     const struct parser_event* e = parser_feed(ctx->boundary,c);
@@ -353,14 +371,21 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                 ctx->filtered_msg_detected = &T;
                 break;
             case MIME_MSG_BODY:
-                //TODO facu, falla
-                /*if(ctx->boundary_detected != 0
+                if(ctx->boundary_detected != 0
                         || *ctx->boundary_detected){
                     for(int i = 0; i < e->n; i++){
                         boundary_frontier_check(ctx,e->data[i]);
                     }
-                }*/
+                }
 
+                break;
+            case MIME_MSG_BODY_NEWLINE:
+                if(ctx->boundary_frontier != NULL){
+                    if(ctx->boundary_frontier->frontier_parser != NULL){
+                        parser_reset(ctx->boundary_frontier->frontier_parser);
+                        parser_reset(ctx->boundary_frontier->frontier_end_parser);
+                    }
+                }
                 break;
         }
         e = e->next;
@@ -411,6 +436,9 @@ stripmime(int argc, const char **argv, struct Tree* tree) {
             .mime_tree    = tree,
             .boundary_frontier = frontier_init(),
             .filtered_msg_detected = &T,
+            .boundary_detected     = &F,
+            .frontier_end_detected = &F,
+            .frontier_detected     = &F,
     };
 
     uint8_t data[4096];

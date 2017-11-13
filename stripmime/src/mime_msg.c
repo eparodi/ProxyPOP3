@@ -115,6 +115,13 @@ unexpected(struct parser_event *ret, const uint8_t c) {
     ret->data[0] = c;
 }
 
+static void
+body_newline(struct parser_event* ret, const uint8_t c){
+    ret->type   = MIME_MSG_BODY_NEWLINE;
+    ret->n      = 1;
+    ret->data[0]= '\n';
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Transiciones
 
@@ -170,7 +177,8 @@ static const struct parser_state_transition ST_VALUE_CRLF_CR[] =  {
 };
 
 static const struct parser_state_transition ST_BODY[] =  {
-    {.when = ANY,        .dest = BODY,           .act1 = body,},
+        {.when = '\n',    .dest = BODY,           .act1 = body_newline,},
+        {.when = ANY,     .dest = BODY,           .act1 = body,},
 };
 
 static const struct parser_state_transition ST_ERROR[] =  {
