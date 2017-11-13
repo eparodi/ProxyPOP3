@@ -78,6 +78,7 @@ int main (int argc, char ** argv) {
     puts("Waiting for connections ...");
 
     close(0);
+    signal(SIGPIPE, SIG_IGN);
 
     const char       *err_msg;
     selector_status   ss      = SELECTOR_SUCCESS;
