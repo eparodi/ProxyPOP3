@@ -7,4 +7,11 @@ void pop3_session_init(struct pop3_session *s, bool pipelining) {
 
     s->pipelining = pipelining;
     s->state = POP3_AUTHORIZATION;
+
+    s->request_queue = queue_new();
+}
+
+void pop3_session_close(struct pop3_session *s) {
+    queue_destroy(s->request_queue);
+    s->state = POP3_DONE;
 }

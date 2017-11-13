@@ -35,5 +35,8 @@ struct pop3_request {
 /** Traduce un string a struct cmd */
 const struct pop3_request_cmd * get_cmd(const char *cmd);
 
+struct pop3_request * new_request(const struct pop3_request_cmd * cmd, char * args);
+
+void destroy_request(struct pop3_request *r);
 
 #endif

@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
+#include "queue.h"
+
 // estados independientes de la maquina de estados general
 enum pop3_session_state {
     POP3_AUTHORIZATION,
@@ -21,6 +23,8 @@ struct pop3_session {
     unsigned concurrent_invalid_commands;
 
     bool pipelining;
+
+    struct queue * request_queue;
 };
 
 void pop3_session_init(struct pop3_session *s, bool pipelining);

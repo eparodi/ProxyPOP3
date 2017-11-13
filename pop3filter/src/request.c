@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 #include "request.h"
 
@@ -94,4 +95,30 @@ const struct pop3_request_cmd * get_cmd(const char *cmd) {
     }
 
     return &invalid_cmd;
+}
+
+struct pop3_request * new_request(const struct pop3_request_cmd * cmd, char * args) {
+    struct pop3_request *r = malloc(sizeof(*r));
+
+    if (r == NULL) {
+        return NULL;
+    }
+
+    r->cmd      = cmd;
+    r->args     = args; // args ya fue alocado en el parser. se podria alocar aca tambien
+    r->response = malloc(sizeof(*r->response));
+
+    if (r->response == NULL) {
+        free(r);
+        return NULL;
+    }
+
+    return r;
+}
+
+//TODO
+void destroy_request(struct pop3_request *r) {
+    free(r->args);
+    free((void *)r->response);
+    free(r);
 }
