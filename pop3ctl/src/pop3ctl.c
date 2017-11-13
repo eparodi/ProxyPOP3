@@ -124,7 +124,10 @@ main (int argc, char* argv[]){
 
     while(true){
 
-        fgets(buffer, MAX_BUFFER, stdin);
+        if (fgets(buffer, MAX_BUFFER, stdin) == NULL){
+            close(connection_socket);
+            exit(-1);
+        }
         /* Clear the newline or carriage return from the end*/
         buffer[strcspn(buffer, "\r\n")] = 0;
         /* Sample input */
