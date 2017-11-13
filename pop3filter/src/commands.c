@@ -168,14 +168,16 @@ static struct command * command_list[] = {
 int parse_config(struct management *data){
     char ** cmd = data->cmd;
     enum comm_status st = COMM_ERR_NOT_RECOGNIZED;
-    for (size_t i = 0; i < sizeof(command_list)/ sizeof(*command_list); i++){
-        struct command * c = command_list[i];
-        if (strcasecmp(c->comm, cmd[0]) == 0){
-            if(c->args == data->argc - 1){
-                st = c->handler(data);
-            }else{
-                send_error(data, "wrong number of arguments.");
-                return 0;
+    if (data->argc > 0){
+        for (size_t i = 0; i < sizeof(command_list)/ sizeof(*command_list); i++){
+            struct command * c = command_list[i];
+            if (strcasecmp(c->comm, cmd[0]) == 0){
+                if(c->args == data->argc - 1){
+                    st = c->handler(data);
+                }else{
+                    send_error(data, "wrong number of arguments.");
+                    return 0;
+                }
             }
         }
     }
