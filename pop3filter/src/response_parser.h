@@ -23,10 +23,7 @@ enum response_state {
     response_list,
     response_capa,
 
-    //response_uidl,
-    //response_top,
-
-    // todo usar este estado generico
+    // estado usado para respuestas multilinea que no requieren un manejo especial
     response_multiline,
 
     // apartir de aca están done
@@ -41,9 +38,9 @@ struct response_parser {
     enum response_state   state;
 
     uint8_t               i, j, count;
-    // TODO podria usar buffer.c
+
     char                  status_buffer[STATUS_SIZE];
-    char                  description_buffer[DESCRIPTION_SIZE];
+    char                  description_buffer[DESCRIPTION_SIZE];     // unused
 
     bool                  first_line_done;
     struct parser         *pop3_multi_parser;

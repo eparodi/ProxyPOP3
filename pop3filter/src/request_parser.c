@@ -141,7 +141,7 @@ request_consume(buffer *b, struct request_parser *p, bool *errored) {
 }
 
 extern void
-request_close(struct request_parser *p) {
+request_parser_close(struct request_parser *p) {
     // nada que hacer
 }
 

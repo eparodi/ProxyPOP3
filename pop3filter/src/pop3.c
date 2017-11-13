@@ -35,6 +35,7 @@ enum pop3_state {
      *
      *  Transiciones:
      *      - CONNECTING    una vez que se resuelve el nombre
+     *      - ERROR         si fallo la resolucion
      *
      */
             ORIGIN_RESOLV,
@@ -43,6 +44,7 @@ enum pop3_state {
      *
      *  Transiciones:
      *      - HELLO    una vez que se establecio la conexion
+     *      - ERR      si no se pudo conectar
      */
             CONNECTING,
     /**
@@ -56,15 +58,29 @@ enum pop3_state {
      */
             HELLO,
     /**
-     *  Lee una request del cliente y la manda al origin server
+     *  Lee requests del cliente y las manda al origin server
+     *
+     *  Transiciones:
+     *      - REQUEST       mientras la request no este completa
+     *      - RESPONSE      cuando la request esta completa
+     *      - ERROR         ante cualquier error (IO/parseo)
      */
             REQUEST,
     /**
      *  Lee la respuesta del origin server y se la envia al cliente
+     *
+     *  Transiciones:
+     *      - RESPONSE                  mientras la respuesta no este completa
+     *      - EXTERNAL_TRANSFORMATION   si la request requiere realizar una transformacion externa
+     *      - REQUEST                   cuando la respuesta esta completa
+     *      - ERROR                     ante cualquier error (IO/parseo)
      */
             RESPONSE,
      /**
      *  Ejecuta una transformacion externa sobre un mail
+     *      - EXTERNAL_TRANSFORMATION   mientras la transformacion externa no esta completa
+     *      - REQUEST                   cuando esta completa
+     *      - ERROR                     ante cualquier error (IO/parseo)
      */
             EXTERNAL_TRANSFORMATION,
 
@@ -390,22 +406,15 @@ origin_resolv(struct selector_key *key){
     struct selector_key* k = malloc(sizeof(*key));
 
     if(k == NULL) {
-        //ret       = REQUEST_WRITE;
-        //d->status = status_general_SOCKS_server_failure;
-        //selector_set_interest_key(key, OP_WRITE);
+        return ERROR;
     } else {
         memcpy(k, key, sizeof(*k));
-        if(-1 == pthread_create(&tid, 0,
-                                origin_resolv_blocking, k)) {
-            //ret       = REQUEST_WRITE;
-            //d->status = status_general_SOCKS_server_failure;
-            //selector_set_interest_key(key, OP_WRITE);
+        if(-1 == pthread_create(&tid, 0, origin_resolv_blocking, k)) {
+            return ERROR;
         } else{
-            //ret = REQUEST_RESOLV;
             selector_set_interest_key(key, OP_NOOP);
         }
     }
-
 
     return ORIGIN_RESOLV;
 }
@@ -454,7 +463,9 @@ origin_resolv_done(struct selector_key *key) {
     struct pop3 *s      =  ATTACHMENT(key);
 
     if(s->origin_resolution == 0) {
-        // TODO: error
+        char * msg = "-ERR Invalid domain.\r\n";
+        send(ATTACHMENT(key)->client_fd, msg, strlen(msg), 0);
+        return ERROR;
     } else {
         s->origin_domain   = s->origin_resolution->ai_family;
         s->origin_addr_len = s->origin_resolution->ai_addrlen;
@@ -563,14 +574,15 @@ connecting(struct selector_key *key) {
     log_connection(true, (const struct sockaddr *)&ATTACHMENT(key)->client_addr,
                    (const struct sockaddr *)&ATTACHMENT(key)->origin_addr);
 
-    //TODO preguntar al server por pipelining
-    bool pipelining = false;
-    pop3_session_init(&ATTACHMENT(key)->session, pipelining);
+    // iniciamos la sesion pop3 sin pipelining del lado del server
+    pop3_session_init(&ATTACHMENT(key)->session, false);
 
-    selector_status s;
+    selector_status ss = SELECTOR_SUCCESS;
 
-    s = set_interests(key->s, d->client_fd, key->fd, HELLO);
-    return SELECTOR_SUCCESS == s ? HELLO : ERROR;
+    ss |= selector_set_interest_key(key, OP_READ);
+    ss |= selector_set_interest(key->s, ATTACHMENT(key)->client_fd, OP_NOOP);
+
+    return SELECTOR_SUCCESS == ss ? HELLO : ERROR;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -801,8 +813,8 @@ request_write(struct selector_key *key) {
 
 static void
 request_close(const unsigned state, struct selector_key *key) {
-    //struct request_st * d = &ATTACHMENT(key)->client.request;
-    //request_parser_close(&d->request_parser); //TODO: UNDEFINED??????
+    struct request_st * d = &ATTACHMENT(key)->client.request;
+    request_parser_close(&d->request_parser);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -830,6 +842,61 @@ char * to_upper(char *str) {
     }
 
     return str;
+}
+
+enum pop3_state
+response_process_capa(struct selector_key *key, struct response_st *d) {
+    // busco pipelinig
+    to_upper(d->response_parser.capa_response);
+    char * capabilities = d->response_parser.capa_response;
+    // siempre pasar la needle en upper case
+    char * needle = "PIPELINING";
+
+    struct pop3 *p = ATTACHMENT(key);
+
+    if (strstr(capabilities, needle) != NULL) {
+        p->session.pipelining = true;
+        return RESPONSE;
+    }
+
+    // else
+    p->session.pipelining = false;
+    size_t capa_length = strlen(capabilities);
+    size_t needle_length = strlen(needle);
+
+    char * eom = "\r\n.\r\n";
+    size_t eom_length = strlen(eom);
+
+    char * new_capa = calloc(capa_length - 3 + needle_length + eom_length + 1, sizeof(char));
+    if (new_capa == NULL) {
+        return ERROR;
+    }
+    // copio to-do menos los ultimos 3 caracteres
+    memcpy(new_capa, capabilities, capa_length - 3);
+    // agrego la needle
+    memcpy(new_capa + capa_length - 3, needle, needle_length);
+    // agrego eom
+    memcpy(new_capa + capa_length - 3 + needle_length, eom, eom_length);
+
+    //printf("--%s--", new_capa);
+
+    free(capabilities);
+
+    d->response_parser.capa_response = new_capa;
+
+    //leer el buffer y copiar la nueva respuesta
+    while (buffer_can_read(d->wb)) {
+        buffer_read(d->wb);
+    }
+
+    uint8_t *ptr1;
+    size_t   count1;
+
+    ptr1 = buffer_write_ptr(d->wb, &count1);
+    strcpy((char *)ptr1, new_capa);
+    buffer_write_adv(d->wb, strlen(new_capa));
+
+    return RESPONSE;
 }
 
 /**
@@ -884,60 +951,11 @@ response_read(struct selector_key *key) {
         ss |= selector_set_interest(key->s, ATTACHMENT(key)->client_fd, OP_WRITE);
         ret = ss == SELECTOR_SUCCESS ? RESPONSE : ERROR;
 
-        if (response_is_done(st, 0)) {
+        if (ret == RESPONSE && response_is_done(st, 0)) {
             log_response(d->request->response);
-///////////////////////////////////////////////////TODO pasar a otr funcion
             if (d->request->cmd->id == capa) {
-                // busco pipelinig
-                to_upper(d->response_parser.capa_response);
-                char * capabilities = d->response_parser.capa_response;
-                // siempre pasar la needle en upper case
-                char * needle = "PIPELINING";
-
-                struct pop3 *p = ATTACHMENT(key);
-
-                if (strstr(capabilities, needle) != NULL) {
-                    p->session.pipelining = true;
-                    return ret;
-                } else {
-                    p->session.pipelining = false;
-                    size_t capa_length = strlen(capabilities);
-                    size_t needle_length = strlen(needle);
-
-                    char * eom = "\r\n.\r\n";
-                    size_t eom_length = strlen(eom);
-
-                    char * new_capa = calloc(capa_length - 3 + needle_length + eom_length + 1, sizeof(char));
-                    if (new_capa == NULL) {
-                        return ERROR;
-                    }
-                    // copio to-do menos los ultimos 3 caracteres
-                    memcpy(new_capa, capabilities, capa_length - 3);
-                    // agrego la needle
-                    memcpy(new_capa + capa_length - 3, needle, needle_length);
-                    // agrego eom
-                    memcpy(new_capa + capa_length - 3 + needle_length, eom, eom_length);
-
-                    //printf("--%s--", new_capa);
-
-                    free(capabilities);
-
-                    d->response_parser.capa_response = new_capa;
-
-                    //leer el buffer y copiar la nueva respuesta
-                    while (buffer_can_read(d->wb)) {
-                        buffer_read(d->wb);
-                    }
-
-                    uint8_t *ptr1;
-                    size_t   count1;
-
-                    ptr1 = buffer_write_ptr(d->wb, &count1);
-                    strcpy((char *)ptr1, new_capa);
-                    buffer_write_adv(d->wb, strlen(new_capa));
-                }
+                response_process_capa(key, d);
             }
-///////////////////////////////////////////////////////////////////////
         }
     } else {
         ret = ERROR;
@@ -946,7 +964,7 @@ response_read(struct selector_key *key) {
     return error ? ERROR : ret;
 }
 
-/** Escrible la respuesta en el cliente */
+/** Escribe la respuesta en el cliente */
 static unsigned
 response_write(struct selector_key *key) {
     struct response_st *d = &ATTACHMENT(key)->orig.response;
@@ -1000,8 +1018,6 @@ response_process(struct selector_key *key, struct response_st * d) {
                 ATTACHMENT(key)->session.state = POP3_TRANSACTION;
             break;
         case capa:
-            //todo buscar pipelining en la respuesta, y agregarselo si no está
-            // o cachear la respuesta al principio y mandarle la respuesta cacheada
             break;
         default:
             break;
@@ -1018,8 +1034,8 @@ response_process(struct selector_key *key, struct response_st * d) {
 
 static void
 response_close(const unsigned state, struct selector_key *key) {
-    //struct response_st * d = &ATTACHMENT(key)->orig.response;
-    //response_parser_close(&d->response_parser);   //TODO: undefined GG again
+    struct response_st * d = &ATTACHMENT(key)->orig.response;
+    response_parser_close(&d->response_parser);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1309,9 +1325,12 @@ pop3_done(struct selector_key *key) {
             close(fds[i]);
         }
     }
-    metricas->concurrent_connections--;
-    log_connection(false, (const struct sockaddr *)&ATTACHMENT(key)->client_addr,
-                   (const struct sockaddr *)&ATTACHMENT(key)->origin_addr);
+
+    if (ATTACHMENT(key)->origin_fd != -1) {
+        metricas->concurrent_connections--;
+        log_connection(false, (const struct sockaddr *) &ATTACHMENT(key)->client_addr,
+                       (const struct sockaddr *) &ATTACHMENT(key)->origin_addr);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

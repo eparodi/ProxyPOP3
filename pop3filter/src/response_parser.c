@@ -166,6 +166,7 @@ response_parser_init (struct response_parser* p) {
 
     if (p->capa_response != NULL) {
         free(p->capa_response);
+        p->capa_response = NULL;
     }
 
     p->j = 0;
@@ -234,6 +235,6 @@ response_consume(buffer *b, buffer *wb, struct response_parser *p, bool *errored
 }
 
 extern void
-response_close(struct response_parser *p) {
+response_parser_close(struct response_parser *p) {
     // nada que hacer
 }

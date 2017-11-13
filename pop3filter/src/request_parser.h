@@ -17,21 +17,21 @@ enum request_state {
     // apartir de aca están done
     request_done,
 
-   // y apartir de aca son considerado con error
+    // y apartir de aca son considerado con error
     request_error,
     request_error_cmd_too_long,
     request_error_param_too_long,
 };
 
 #define CMD_SIZE    4
-#define PARAM_SIZE  40
+#define PARAM_SIZE  (40 * 2)       // cada argumento puede tener 40 bytes y la maxima cantidad de argumentos de un comando es 2
 
 struct request_parser {
-    struct pop3_request  *request;
-    enum request_state   state;
+    struct pop3_request *request;
+    enum request_state  state;
 
-    uint8_t            i, j;
-    // TODO podria usar buffer.c
+    uint8_t             i, j;
+
     char                cmd_buffer[CMD_SIZE];
     char                param_buffer[PARAM_SIZE];
 };
