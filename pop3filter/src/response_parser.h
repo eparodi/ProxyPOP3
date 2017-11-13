@@ -49,6 +49,7 @@ struct response_parser {
     struct parser         *pop3_multi_parser;
 
     char                  *capa_response;
+    size_t                capa_size;
 };
 
 /** inicializa el parser */

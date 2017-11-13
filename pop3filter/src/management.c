@@ -4,6 +4,7 @@
 #include <malloc.h>
 #include <netinet/in.h>
 #include <stdlib.h>
+#include <strings.h>
 
 #include "selector.h"
 #include "parameters.h"
@@ -11,6 +12,7 @@
 #include "management.h"
 #include "media_types.h"
 #include "metrics.h"
+#include "commands.h"
 
 #define ATTACHMENT(key) ( (struct management *)(key)->data)
 #define N(x) (sizeof(x)/sizeof((x)[0]))
@@ -45,6 +47,7 @@ management_new(const int client_fd){
     ret->status = ST_HELO;
     ret->error  = PARSE_OK;
     ret->argc = 0;
+    ret->cmd = NULL;
     return ret;
 }
 
@@ -68,7 +71,7 @@ void management_accept_connection(struct selector_key *key) {
     if(selector_fd_set_nio(client) == -1) {
         goto fail;
     }
-    print_connection_status("Connection established", client_addr);
+    // print_connection_status("Connection established", client_addr);
     printf("File descriptor: %d\n", client);
     state = management_new(client);
     if(state == NULL) {
@@ -114,7 +117,7 @@ management_write(struct selector_key *key){
 void
 management_close(struct selector_key *key){
     struct management * data = ATTACHMENT(key);
-    print_connection_status("Connection disconnected", data->client_addr);
+    // print_connection_status("Connection disconnected", data->client_addr);
     management_destroy(data);
 }
 
@@ -123,7 +126,6 @@ management_close(struct selector_key *key){
 int parse_hello(struct management *data);
 int parse_user(struct management *data);
 int parse_pass(struct management *data);
-int parse_config(struct management *data);
 int goodbye(struct management * data);
 
 struct parse_action{
@@ -185,7 +187,6 @@ int parse_commands(struct management *data){
     switch (st_err){
         case PARSE_OK:
             status = act->action(data);
-            free_cmd(data->cmd, act->args);
             break;
         case ERROR_WRONGARGS:
             send_error(data, "wrong command or wrong number of arguments.");
@@ -195,6 +196,8 @@ int parse_commands(struct management *data){
         default:
             break;
     }
+    if (data->cmd != NULL)
+        free_cmd(data->cmd, act->args);
     return status;
 }
 
@@ -208,7 +211,7 @@ int parse_hello(struct management *data){
 int parse_user(struct management *data){
     char ** cmd = data->cmd;
     if (strcasecmp("USER", cmd[0]) == 0){
-        char * user = malloc(sizeof(char) * strlen(cmd[1]));
+        char * user = malloc(sizeof(char) * strlen(cmd[1]) + 1);
         if (user == NULL)
             return -1;
         strcpy(user, cmd[1]);
@@ -238,103 +241,6 @@ int parse_pass(struct management *data){
     return 0;
 }
 
-int parse_config(struct management *data){
-    char ** cmd = data->cmd;
-    if(strcasecmp("CMD", cmd[0]) == 0){
-        if (data->argc == 1) {
-            parameters->et_activated = !parameters->et_activated;
-            if (parameters->et_activated) {
-                send_ok(data, "External transformations activated.");
-            } else {
-                send_ok(data, "External transformations deactivated.");
-            }
-            return 0;
-        }
-        else if (data->argc != 2)
-            goto fail;
-        char * str = malloc(sizeof(char) * strlen(cmd[1]));
-        strcpy(str, cmd[1]);
-        if (str == NULL)
-            goto fail;
-        if (parameters->filter_command != NULL)
-            free(parameters->filter_command);
-        parameters->filter_command = str;
-        goto success;
-    }else if(strcasecmp("MSG", cmd[0]) == 0){
-        if (data->argc != 2)
-            goto fail;
-        char * str = malloc(sizeof(char) * strlen(cmd[1]));
-        if (str == NULL)
-            goto fail_mem;
-        strcpy(str, cmd[1]);
-        parameters->replacement_msg = cmd[1];
-        goto success;
-    }else if(strcasecmp("LIST", cmd[0]) == 0){
-        if (data->argc != 1)
-            goto fail;
-        char * msg = get_types_list(parameters->filtered_media_types, '\n');
-        send_ok(data, msg);
-        free(msg);
-        return 0;
-    }else if(strcasecmp("BAN", cmd[0]) == 0){
-        if (data->argc != 2)
-            goto fail;
-        char * str = malloc(sizeof(char) * strlen(cmd[1]));
-        if (str == NULL)
-            goto fail_mem;
-        strcpy(str, cmd[1]);
-        char * type, * subtype;
-        if (is_mime(str, &type, &subtype) < 0)
-            goto fail_type;
-        char * s = malloc(sizeof(char) * strlen(subtype));
-        if (s == NULL)
-            goto fail_mem;
-        strcpy(s, subtype);
-        if (add_media_type(parameters->filtered_media_types, type, s) < 0){
-            send_error(data, "could not ban type");
-        }else{
-            send_ok(data, "type banned");
-        }
-        return 0;
-    }else if(strcasecmp("UNBAN", cmd[0]) == 0){
-        if (data->argc != 2)
-            goto fail;
-        char * type, * subtype;
-        if (is_mime(cmd[1], &type, &subtype) < 0)
-            goto fail_type;
-        if (delete_media_type(parameters->filtered_media_types, type, subtype) < 0){
-            send_error(data, "could not unban type");
-        }else{
-            send_ok(data, "type unbanned");
-        }
-        return 0;
-    }else if(strcasecmp("STATS", cmd[0]) == 0) {
-        if (data->argc != 1)
-            goto fail;
-        char msg[200];
-        sprintf(msg, "\nMetrics\n"
-                        "Concurrent connections: %u\n"
-                        "Historical Access: %u\n"
-                        "Transfered Bytes: %lld\n"
-                        "Retrieved Messages: %u\n", metricas->concurrent_connections,
-                metricas->historical_access, metricas->transferred_bytes,
-                metricas->retrieved_messages);
-        send_ok(data, msg);
-        return 0;
-    }
-    fail:
-    send_error(data, "command not recognized.");
-    return 0;
-    fail_mem:
-    send_error(data, "server error.");
-    return 0;
-    fail_type:
-    send_error(data, "wrong media type.");
-    return 0;
-    success:
-    send_ok(data, "Done.");
-    return 0;
-}
 
 int goodbye(struct management * data){
     send_ok(data, "Goodbye.");

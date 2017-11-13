@@ -40,7 +40,7 @@ param(const uint8_t c, struct request_parser* p) {
     struct pop3_request *r = p->request;
 
     if (c == '\r' || c == '\n') {
-        r->args = malloc(strlen(p->param_buffer));
+        r->args = malloc(strlen(p->param_buffer) + 1);
         strcpy(r->args, p->param_buffer);
         if (c == '\r') {
             ret = request_newline;

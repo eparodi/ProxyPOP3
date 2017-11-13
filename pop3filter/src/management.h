@@ -17,8 +17,7 @@ typedef enum parse_status {
     ST_USER = 1,
     ST_PASS = 2,
     ST_CONFIG = 3,
-    ST_QUIT = 4,
-    ST_ERROR = 5,
+    ST_ERROR = 4,
 } parse_status;
 
 struct management{

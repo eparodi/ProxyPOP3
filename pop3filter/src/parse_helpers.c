@@ -30,6 +30,7 @@ char ** sctp_parse_cmd(buffer *b, struct management *data, int *args, int *st_er
     bool error = false;
     bool copying = false;
     bool quote = false;
+    bool escape_quote = false;
     int flags = 0;
 
     while(true){
@@ -77,7 +78,7 @@ char ** sctp_parse_cmd(buffer *b, struct management *data, int *args, int *st_er
                         quote = true;
                 }
             }else{
-                if ((isspace(c) && !quote) || (c == '\'' && quote)){
+                if ((isspace(c) && !quote) || (c == '\'' && quote && !escape_quote)){
                     if (current_index == current_size){
                         void * tmp = realloc(cmd[current_arg], current_size+1);
                         if (tmp == NULL){
@@ -103,7 +104,14 @@ char ** sctp_parse_cmd(buffer *b, struct management *data, int *args, int *st_er
                         }
                         cmd[current_arg] = tmp;
                     }
-                    cmd[current_arg][current_index++] = c;
+                    if (c == '\\'){
+                        if(escape_quote)
+                            cmd[current_arg][current_index++] = '\\';
+                        escape_quote = true;
+                    }else{
+                        escape_quote = false;
+                        cmd[current_arg][current_index++] = c;
+                    }
                 }
             }
         }

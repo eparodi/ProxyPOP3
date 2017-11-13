@@ -132,6 +132,7 @@ void parse_options(int argc, char **argv) {
 
                 break;
             case 'M':
+                // TODO: create this function.
                 parse_media_types(parameters->filtered_media_types, optarg);
                 break;
                 /* Management SCTP port */
@@ -148,7 +149,10 @@ void parse_options(int argc, char **argv) {
                 break;
                 /* filter command */
             case 't': {
-                char * cmd = malloc(sizeof(char)*strlen(optarg));
+                int size = sizeof(char) * strlen(optarg) + 1;
+                char * cmd = malloc(size);
+                if (cmd == NULL)
+                    exit(0);
                 strcpy(cmd, optarg);
                 parameters->filter_command = cmd;
                 parameters->et_activated   = true;

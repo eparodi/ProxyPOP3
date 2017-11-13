@@ -2,7 +2,7 @@
 
 const char *
 pop3_multi_event(enum pop3_multi_type type) {
-    const char *ret;
+    const char *ret = NULL;
     switch(type) {
         case POP3_MULTI_BYTE:
             ret = "byte(c)";

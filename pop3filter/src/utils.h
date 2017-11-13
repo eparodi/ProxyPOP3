@@ -18,6 +18,6 @@ const char *
 sockaddr_to_human(char *buff, const size_t buffsize,
                   const struct sockaddr *addr);
 
-void print_connection_status(const char * msg, struct sockaddr_storage addr);
+// void print_connection_status(const char * msg, struct sockaddr_storage addr);
 
 #endif //TPE_PROTOS_UTILS_H

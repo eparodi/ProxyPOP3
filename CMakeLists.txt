@@ -3,8 +3,8 @@ project(tpe_protos)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread --std=c99")
+# set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread --std=c99 -pedantic -pedantic-errors -Wall -Wextra -Werror -Wno-unused-parameter -Wno-implicit-fallthrough -D_POSIX_C_SOURCE=200112L -O1 -fsanitize=address")
 add_compile_options("-lsctp")
 link_libraries("-lsctp")
 

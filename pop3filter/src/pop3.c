@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <ctype.h>
+#include <memory.h>
 
 #include "pop3_session.h"
 #include "buffer.h"
@@ -598,7 +599,8 @@ hello_read(struct selector_key *key) {
     ptr = buffer_write_ptr(d->wb, &count);
     const char * msg = "+OK Proxy server POP3 ready.\r\n";
     n = strlen(msg);
-    memccpy(ptr, msg, 0, count);
+    strcpy((char *) ptr, msg);
+    // memccpy(ptr, msg, 0, count);
     buffer_write_adv(d->wb, n);
     //////////////////////////////////////////////////////
 
@@ -1345,8 +1347,11 @@ open_external_transformation(struct selector_key * key, struct pop3_session * se
     int fd_read[2];
     int fd_write[2];
 
-    pipe(fd_read);
-    pipe(fd_write);
+    int r1 = pipe(fd_read);
+    int r2 = pipe(fd_write);
+
+    if (r1 < 0 || r2 < 0)
+        return et_status_err;
 
     if ((pid = fork()) == -1)
         perror("fork error");
