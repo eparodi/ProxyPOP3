@@ -965,11 +965,15 @@ response_write(struct selector_key *key) {
         buffer_read_adv(b, n);
         if (!buffer_can_read(b)) {
             if (d->response_parser.state != response_done) {
+                if (d->request->cmd->id == retr)
+                    metricas->transferred_bytes += n;
                 selector_status ss = SELECTOR_SUCCESS;
                 ss |= selector_set_interest_key(key, OP_NOOP);
                 ss |= selector_set_interest(key->s, ATTACHMENT(key)->origin_fd, OP_READ);
                 ret = ss == SELECTOR_SUCCESS ? RESPONSE : ERROR;
             } else {
+                if (d->request->cmd->id == retr)
+                    metricas->retrieved_messages++;
                 ret = response_process(key, d);
             }
         }
@@ -1106,7 +1110,9 @@ external_transformation_write(struct selector_key *key) {
         buffer_read_adv(b, n);
         selector_set_interest(key->s, *et->ext_read_fd, OP_READ);
         selector_set_interest(key->s, *et->client_fd, OP_NOOP);
+        metricas->transferred_bytes += n;
     } else if (et->status == et_status_done) {
+        metricas->retrieved_messages++;
         selector_set_interest(key->s, *et->origin_fd, OP_NOOP);
         selector_set_interest(key->s, *et->client_fd, OP_READ);
         ret = REQUEST;
