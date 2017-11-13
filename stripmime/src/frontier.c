@@ -9,7 +9,7 @@
 struct Frontier*
 frontier_init(){
     struct Frontier* node = malloc(sizeof(*node));
-    memset(node,0,sizeof(node));
+    memset(node,0,sizeof(*node));
     if(node != NULL){
         node->frontier_size = 2;
         node->frontier[0] = '-';

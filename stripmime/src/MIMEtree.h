@@ -9,7 +9,7 @@ struct TreeNode{
 	struct TreeNode *next;
 	struct TreeNode *children;
 	const char* name;
-	struct parser_event* event;
+	const struct parser_event* event;
 	bool wildcard;
 };
 

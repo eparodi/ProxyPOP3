@@ -1315,14 +1315,17 @@ char *concat_string(char *variable, char *value) {
 enum et_status
 open_external_transformation(struct selector_key * key, struct pop3_session * session) {
 
-    char *medias               = get_types_list(parameters->filtered_media_types, ',');
-    char *filter_medias         = concat_string("FILTER_MEDIAS=", medias);
-    char *filter_msg            = concat_string("FILTER_MSG=",
-                                                parameters->replacement_msg);
-    char *pop3_filter_version   = concat_string("POP3_FILTER_VERSION=",
-                                                parameters->version);
-    char *pop3_username         = concat_string("POP3_USERNAME=", session->user);
-    char *pop3_server           = concat_string("POP3_SERVER=", parameters->origin_server);
+    char *medias                = get_types_list(parameters->filtered_media_types, ',');
+
+    //TODO malloc
+    char env_cat[2048] = {0};
+
+    sprintf(env_cat, "FILTER_MEDIAS=%s FILTER_MSG=\"%s\" "
+            "POP3_FILTER_VERSION=\"%s\" POP3_USERNAME=\"%s\" POP3_SERVER=\"%s\" %s ",
+            medias, parameters->replacement_msg, parameters->version, session->user,
+            parameters->origin_server, parameters->filter_command);
+
+    fprintf(stderr, env_cat);
 
     free(medias);
 
@@ -1330,11 +1333,9 @@ open_external_transformation(struct selector_key * key, struct pop3_session * se
     char * args[4];
     args[0] = "bash";
     args[1] = "-c";
-    args[2] = parameters->filter_command;
+    args[2] = env_cat;
     args[3] = NULL;
-    char *const environment[6]  = {filter_medias, filter_msg,
-                                   pop3_filter_version,
-                                   pop3_username, pop3_server, NULL};
+
 
     int fd_read[2];
     int fd_write[2];
@@ -1349,7 +1350,7 @@ open_external_transformation(struct selector_key * key, struct pop3_session * se
         dup2(fd_read[1], STDOUT_FILENO);
         close(fd_write[1]);
         close(fd_read[0]);
-        int value = execve("/bin/bash", args, environment);
+        int value = execve("/bin/bash", args, NULL);
         perror("execve");
         if (value == -1){
             fprintf(stderr, "Error\n");
@@ -1358,9 +1359,6 @@ open_external_transformation(struct selector_key * key, struct pop3_session * se
         close(fd_write[0]);
         close(fd_read[1]);
         int i = 0;
-        while(environment[i] != NULL){
-            free(environment[i++]);
-        }
         struct pop3 * data = ATTACHMENT(key);
         if (selector_register(key->s, fd_read[0], &ext_handler, OP_READ, data) == 0 &&
                 selector_fd_set_nio(fd_read[0]) == 0){

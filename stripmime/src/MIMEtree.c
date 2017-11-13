@@ -67,9 +67,9 @@ newNodeWildcard(){
 struct TreeNode*
 removeChildren(struct TreeNode* node){
 	struct TreeNode* aux = node->children;
-	struct TreeNode* tmp;
+	//struct TreeNode* tmp;
 	while(aux->next!=NULL){
-		tmp = aux;
+		//tmp = aux;
 		aux = aux->next;
 		free(aux);
 	}
@@ -128,11 +128,11 @@ void addWildcard(struct TreeNode* node, char* type, bool found){
 	if(found){
 		removeChildren(node);
 		node->children = newNodeWildcard();
-		printf("Created new Node: %s/*\n", type);
+		fprintf(stderr,"Created new Node: %s/*\n", type);
 	}else{
 		node->next = newNode(type);
 		node->next->children = newNodeWildcard();
-		printf("Created new Node: %s/*\n", type);
+		fprintf(stderr,"Created new Node: %s/*\n", type);
 	}
 	return;
 }
@@ -144,10 +144,10 @@ addNode(struct Tree* tree, char* type, char* subtype) {
 			tree->first = newNode(type);
 			if(strcmp(subtype,WILDCARD)==0){
 				tree->first->children = newNodeWildcard();
-				printf("Created new Node:%s/%s\n",type,subtype);
+				fprintf(stderr,"Created new Node:%s/%s\n",type,subtype);
 			}else{
 				tree->first->children = newNode(subtype);
-				printf("Created new Node:%s/%s\n",type,subtype);
+				fprintf(stderr,"Created new Node:%s/%s\n",type,subtype);
 			}
 			return;
 		}
@@ -160,16 +160,16 @@ addNode(struct Tree* tree, char* type, char* subtype) {
 			found = false;
 			node = findSubTypeMatch(node->children, subtype, &found);
 			if(found){
-				printf("Filter already added\n");
+				fprintf(stderr,"Filter already added\n");
 				return;
 			}else{
-				printf("Added new subtype to %s/%s\n",type,subtype);
+				fprintf(stderr,"Added new subtype to %s/%s\n",type,subtype);
 				node->next = newNode(subtype);
 			}
 		}else{
 			node->next = newNode(type);
 			node->next->children = newNode(subtype);
-			printf("Created new Node:%s/%s\n",type,subtype);	
+			fprintf(stderr,"Created new Node:%s/%s\n",type,subtype);
 		}
 	}
 	return;	

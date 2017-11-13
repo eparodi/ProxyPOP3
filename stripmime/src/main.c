@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "stripmime.h"
-#include "MIMEtree.h"
 
 #define FILTER_MEDIAS 	"FILTER_MEDIAS"
 #define FILTER_MSG 		"FILTER_MSG"
@@ -13,10 +12,12 @@ int main(int argc, char const *argv[]) {
 
 	char * filter_medias = getenv(FILTER_MEDIAS);
 
-	struct Tree* tree = tree_init();  
+	struct Tree* tree = tree_init();
+
+	char * filter_msg = getenv(FILTER_MSG);
 
 	if (filter_medias == NULL) {
-		printf("ERROR\n");
+		fprintf(stderr, "Error: No filter medias specified\n");
 		return -1;
 	}
 
@@ -32,7 +33,7 @@ int main(int argc, char const *argv[]) {
 
 	char *token;
 	char *mime;
-	char *type, *subtype;
+	//char *type, *subtype;
 
 	/* get the first token */
 	token = strtok_r(str, comma, &ctx1);

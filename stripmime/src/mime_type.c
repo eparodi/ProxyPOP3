@@ -77,7 +77,7 @@ boundary_end(struct parser_event *ret, const uint8_t c){
     ret->type   = MIME_BOUNDARY_END;
     ret->n      = 1;
     ret->data[0]= '=';
-};
+}
 
 static void
 frontier(struct parser_event *ret, const uint8_t c){

@@ -132,7 +132,7 @@ setContextType(struct ctx* ctx){
 const struct parser_event *
 parser_feed_type (struct Tree* mime_tree, const uint8_t c){
     struct TreeNode* node = mime_tree->first;
-    struct parser_event* global_event;
+    const struct parser_event* global_event;
     node->event = parser_feed(node->parser,c);
     global_event = node->event;
     while(node->next != NULL){
@@ -151,7 +151,7 @@ parser_feed_subtype (struct TreeNode* node, const uint8_t c){
 
     if(node->wildcard){
         global_event = malloc(sizeof(*global_event));
-        memset(global_event,0,sizeof(global_event));
+        memset(global_event,0,sizeof(*global_event));
         global_event->type = STRING_CMP_EQ;
         global_event->next = NULL;
         global_event->n = 1;
@@ -159,13 +159,13 @@ parser_feed_subtype (struct TreeNode* node, const uint8_t c){
         return global_event;
     }
     node->event = parser_feed(node->parser,c);
-    global_event = node->event;
+    global_event = (struct parser_event *)node->event;
 
     while(node->next != NULL){
         node = node->next;
         node->event = parser_feed(node->parser,c);
         if(node->event->type == STRING_CMP_EQ) {
-            global_event = node->event;
+            global_event = (struct parser_event *)node->event;
         }
     }
     return global_event;
@@ -192,9 +192,9 @@ static void store_boundary_parameter(struct ctx*ctx, const uint8_t c){
     add_character(ctx->boundary_frontier,c);
 }
 
-static void boundary_parameter_end(struct ctx*ctx, const uint8_t c){
-    end_frontier(ctx->boundary_frontier);
-}
+//static void boundary_parameter_end(struct ctx*ctx, const uint8_t c){
+//    end_frontier(ctx->boundary_frontier);
+//}
 
 static void parameter_boundary(struct ctx *ctx, const uint8_t c){
     const struct parser_event* e = parser_feed(ctx->boundary,c);
@@ -232,7 +232,7 @@ content_type_subtype(struct ctx* ctx, const uint8_t c){
 
 static void
 content_type_type(struct ctx*ctx, const uint8_t c){
-    struct TreeNode* node;
+    //struct TreeNode* node;
     const struct parser_event* e = parser_feed_type(ctx->mime_tree,c);
     do{
         debug("4.type", parser_utils_strcmpi_event, e);
@@ -353,12 +353,13 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                 ctx->filtered_msg_detected = &T;
                 break;
             case MIME_MSG_BODY:
-                if(ctx->boundary_detected != 0
+                //TODO facu, falla
+                /*if(ctx->boundary_detected != 0
                         || *ctx->boundary_detected){
                     for(int i = 0; i < e->n; i++){
                         boundary_frontier_check(ctx,e->data[i]);
                     }
-                }
+                }*/
 
                 break;
         }
@@ -393,14 +394,6 @@ pop3_multi(struct ctx *ctx, const uint8_t c) {
 
 int
 stripmime(int argc, const char **argv, struct Tree* tree) {
-    int fd = STDIN_FILENO;
-    if(argc > 1) {
-        fd = open(argv[1], 0);
-        if(fd == -1) {
-            perror("opening file");
-            return 1;
-        }
-    }
 
     const unsigned int* no_class = parser_no_classes();
     struct parser_definition media_header_def =
@@ -421,11 +414,16 @@ stripmime(int argc, const char **argv, struct Tree* tree) {
     };
 
     uint8_t data[4096];
-    int n;
+    ssize_t n;
+    int fd = STDIN_FILENO;
+
+    //freopen("myfile.txt", "w", stdout);
+
     do {
         n = read(fd, data, sizeof(data));
         for(ssize_t i = 0; i < n ; i++) {
             pop3_multi(&ctx, data[i]);
+            putchar(data[i]);
         }
     } while(n > 0);
 
@@ -436,4 +434,8 @@ stripmime(int argc, const char **argv, struct Tree* tree) {
     parser_destroy(ctx.boundary);
     mime_parser_destroy(ctx.mime_tree);
     parser_utils_strcmpi_destroy(&media_header_def);
+
+    //fclose(stdout);
+
+    return 0;
 }

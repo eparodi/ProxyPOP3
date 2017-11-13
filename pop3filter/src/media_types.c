@@ -205,7 +205,10 @@ char * get_types_list(struct media_types * mt, char separator){
         }
         node = node->next;
     }
-    str[index-1] = '\0';
+    if (index != 0)
+        str[index-1] = '\0';
+    else
+        str[index] = '\0';
     return str;
 }
 
