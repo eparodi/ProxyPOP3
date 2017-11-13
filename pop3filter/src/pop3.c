@@ -1377,8 +1377,14 @@ open_external_transformation(struct selector_key * key, struct pop3_session * se
     else if (pid == 0) {
         dup2(fd_write[0], STDIN_FILENO);
         dup2(fd_read[1], STDOUT_FILENO);
+
         close(fd_write[1]);
         close(fd_read[0]);
+
+        FILE * f = freopen(parameters->error_file, "a+", stderr);
+        if (f == NULL)
+            exit(-1);
+
         int value = execve("/bin/bash", args, NULL);
         perror("execve");
         if (value == -1){
