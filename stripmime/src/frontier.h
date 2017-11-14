@@ -1,5 +1,5 @@
-#ifndef TPE_PROTOS_STACK_H
-#define TPE_PROTOS_STACK_H
+#ifndef TPE_PROTOS_FRONTIER_H
+#define TPE_PROTOS_FRONTIER_H
 
 #include <stdint.h>
 

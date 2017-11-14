@@ -14,16 +14,21 @@ int main(int argc, char const *argv[]) {
 
 	struct Tree* tree = tree_init();
 
-	FILE * f = freopen("mail_no_boundary.txt","r", stdin);
-	if (f == NULL)
-		return -1;
 	if (tree == NULL)
 		return -1;
+
+	FILE * f = freopen("mail_no_boundary.txt","r", stdin);
+	if (f == NULL) {
+        free(tree);
+        return -1;
+    }
+
 	// char * filter_msg = getenv(FILTER_MSG);
 
 	if (filter_medias == NULL) {
 		fprintf(stderr, "Error: No filter medias specified\n");
 		free(tree);
+		fclose(f);
 		return -1;
 	}
 
@@ -85,5 +90,8 @@ int main(int argc, char const *argv[]) {
 
 	free(fm);
 
-	return stripmime(argc, argv, tree);
+	int ret = stripmime(argc, argv, tree);
+	free(tree);
+
+	return ret;
 }

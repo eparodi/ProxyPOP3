@@ -4,10 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "parser_utils.h"
-#include "mime_chars.h"
+
 #define WILDCARD "*"
-
-
 
 struct Tree*
 tree_init(void){
