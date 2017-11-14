@@ -351,7 +351,7 @@ pop3_passive_accept(struct selector_key *key) {
     const int client = accept(key->fd, (struct sockaddr*) &client_addr,
                               &client_addr_len);
 
-    printf("client socket: %d\n", client);
+    //printf("client socket: %d\n", client);
     metricas->concurrent_connections++;
     metricas->historical_access++;
 
@@ -514,7 +514,7 @@ origin_connect(struct selector_key *key) {
     int sock = socket(ATTACHMENT(key)->origin_domain, SOCK_STREAM, IPPROTO_TCP);
     //ATTACHMENT(key)->origin_fd = sock;
 
-    printf("server socket: %d\n", sock);
+    //printf("server socket: %d\n", sock);
 
     if (sock < 0) {
         perror("socket() failed");
@@ -582,10 +582,15 @@ connecting(struct selector_key *key) {
     socklen_t len = sizeof(error);
     struct pop3 *d = ATTACHMENT(key);
 
+    d->origin_fd = key->fd;
+
+    log_connection(true, (const struct sockaddr *)&ATTACHMENT(key)->client_addr,
+                   (const struct sockaddr *)&ATTACHMENT(key)->origin_addr);
+
     if (getsockopt(key->fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0) {
         send_error_(d->client_fd, "-ERR Connection refused.\r\n");
         fprintf(stderr, "Connection to origin server failed\n");
-        selector_set_interest(key->s, ATTACHMENT(key)->client_fd, OP_NOOP);
+        selector_set_interest_key(key, OP_NOOP);
         return ERROR;
     } else {
         if(error == 0) {
@@ -593,13 +598,10 @@ connecting(struct selector_key *key) {
         } else {
             send_error_(d->client_fd, "-ERR Connection refused.\r\n");
             fprintf(stderr, "Connection to origin server failed\n");
-            selector_set_interest(key->s, ATTACHMENT(key)->client_fd, OP_NOOP);
+            selector_set_interest_key(key, OP_NOOP);
             return ERROR;
         }
     }
-
-    log_connection(true, (const struct sockaddr *)&ATTACHMENT(key)->client_addr,
-                   (const struct sockaddr *)&ATTACHMENT(key)->origin_addr);
 
     // iniciamos la sesion pop3 sin pipelining del lado del server
     pop3_session_init(&ATTACHMENT(key)->session, false);
