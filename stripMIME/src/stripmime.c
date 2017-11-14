@@ -497,7 +497,7 @@ stripmime(int argc, const char **argv, struct Tree *tree, char *filter_msg) {
     ssize_t n;
     int fd = STDIN_FILENO;
 
-    freopen("redirected", "w", stdout);
+    //freopen("redirected", "w", stdout);
 
     do {
         n = read(fd, data, sizeof(data));
@@ -514,7 +514,7 @@ stripmime(int argc, const char **argv, struct Tree *tree, char *filter_msg) {
     mime_parser_destroy(ctx.mime_tree);
     parser_utils_strcmpi_destroy(&media_header_def);
 
-    fclose(stdout);
+    //fclose(stdout);
 
     return 0;
 }
