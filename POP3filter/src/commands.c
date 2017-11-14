@@ -2,6 +2,7 @@
 #include <strings.h>
 #include <memory.h>
 #include <stdio.h>
+#include <time.h>
 #include "management.h"
 #include "commands.h"
 #include "parameters.h"
@@ -102,11 +103,19 @@ enum comm_status hand_unban(struct management * data){
 
 enum comm_status hand_stats(struct management * data){
     char msg[300];
-    sprintf(msg, "\nMetrics\n"
+    char cbuff[32] = {0};
+    time_t now = 0;
+    time(&now);
+    strftime(cbuff, 32, "%FT%TZ\t", gmtime(&now));
+    printf("%s", cbuff);
+    sprintf(msg, " Metrics\n"
+                    "Date: %s\n"
                     "Concurrent connections: %u\n"
                     "Historical Access: %u\n"
-                    "Transfered Bytes: %lld\n"
-                    "Retrieved Messages: %u\n", metricas->concurrent_connections,
+                    "Transferred Bytes: %lld\n"
+                    "Retrieved Messages: %u",
+            cbuff,
+            metricas->concurrent_connections,
             metricas->historical_access, metricas->transferred_bytes,
             metricas->retrieved_messages);
     send_ok(data, msg);
