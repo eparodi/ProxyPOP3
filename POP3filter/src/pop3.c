@@ -585,6 +585,7 @@ connecting(struct selector_key *key) {
     if (getsockopt(key->fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0) {
         send_error_(d->client_fd, "-ERR Connection refused.\r\n");
         fprintf(stderr, "Connection to origin server failed\n");
+        selector_set_interest(key->s, ATTACHMENT(key)->client_fd, OP_NOOP);
         return ERROR;
     } else {
         if(error == 0) {
@@ -592,6 +593,7 @@ connecting(struct selector_key *key) {
         } else {
             send_error_(d->client_fd, "-ERR Connection refused.\r\n");
             fprintf(stderr, "Connection to origin server failed\n");
+            selector_set_interest(key->s, ATTACHMENT(key)->client_fd, OP_NOOP);
             return ERROR;
         }
     }
