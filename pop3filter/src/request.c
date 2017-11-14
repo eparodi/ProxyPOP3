@@ -106,19 +106,13 @@ struct pop3_request * new_request(const struct pop3_request_cmd * cmd, char * ar
 
     r->cmd      = cmd;
     r->args     = args; // args ya fue alocado en el parser. se podria alocar aca tambien
-    r->response = malloc(sizeof(*r->response));
-
-    if (r->response == NULL) {
-        free(r);
-        return NULL;
-    }
+    // la response no se aloca porque son genericas
 
     return r;
 }
 
-//TODO
+//TODO usar en algun lado!
 void destroy_request(struct pop3_request *r) {
     free(r->args);
-    free((void *)r->response);
     free(r);
 }
