@@ -156,6 +156,9 @@ struct external_transformation {
 
     bool                        did_write;
     bool                        write_error;
+
+    size_t                      send_bytes_write;
+    size_t                      send_bytes_read;
 };
 
 
@@ -1096,7 +1099,7 @@ response_read(struct selector_key *key) {
                 response_process_capa(d);
             }
         }
-    } else {
+    } else if (n == -1){
         ret = ERROR;
     }
 
@@ -1209,17 +1212,17 @@ enum et_status open_external_transformation(struct selector_key * key, struct po
 /**
  * Return true if the parser finished reading the mail.
  */
-bool parse_mail(buffer * b, struct parser * p){
+bool parse_mail(buffer * b, struct parser * p, size_t * send_bytes){
+    size_t i = 0;
     size_t count;
     uint8_t *rp = buffer_read_ptr(b, &count);
     uint8_t *wp = buffer_write_ptr(b, &count);
     while (buffer_can_read(b)) {
-        // TODO: esto va acá?
-//        log_request(ATTACHMENT(key)->orig.response.request);
-//        log_response(ATTACHMENT(key)->orig.response.request->response);
+        i++;
         uint8_t c = buffer_read(b);
         const struct parser_event *e = parser_feed(p, c);
         if (e->type == POP3_MULTI_FIN){
+            *send_bytes = i;
             b->read  = rp;
             b->write = wp;
             return true;
@@ -1227,6 +1230,7 @@ bool parse_mail(buffer * b, struct parser * p){
     }
     b->read  = rp;
     b->write = wp;
+    *send_bytes = 0;
     return false;
 }
 
@@ -1265,6 +1269,9 @@ external_transformation_init(const unsigned state, struct selector_key *key) {
     et->did_write    = false;
     et->write_error  = false;
 
+    et->send_bytes_write   = 0;
+    et->send_bytes_read   = 0;
+
     if (et->parser_read == NULL) {
         et->parser_read = parser_init(parser_no_classes(), pop3_multi_parser());
     }
@@ -1297,9 +1304,10 @@ external_transformation_init(const unsigned state, struct selector_key *key) {
 
     b = et->rb;
 
-    if (parse_mail(b, et->parser_read)){
-        log_response(ATTACHMENT(key)->orig.response.request->response);
+    log_request(ATTACHMENT(key)->orig.response.request);
+    if (parse_mail(b, et->parser_read, &et->send_bytes_read)){
         et->finish_rd = true;
+        // buffer_write_adv(b, et->send_bytes_read);
     }
 }
 
@@ -1319,32 +1327,39 @@ external_transformation_read(struct selector_key *key) {
 
     if(n > 0) {
         buffer_write_adv(b, n);
-        if (parse_mail(b, et->parser_read)){
-            log_response(ATTACHMENT(key)->orig.response.request->response);
+        if (parse_mail(b, et->parser_read, &et->send_bytes_read) || n == 0){
+            if(et->error_rd){
+                buffer_read_adv(b, et->send_bytes_read);
+            }
+            //log_response(ATTACHMENT(key)->orig.response.request->response);
             et->finish_rd = true;
             if (finished_et(et)){
                 struct queue *q = ATTACHMENT(key)->session.request_queue;
 
                 // vamos a response read, todavia hay respuestas por leer
                 if (!queue_is_empty(q)) {
+                    log_response(ATTACHMENT(key)->orig.response.request->response);
                     selector_set_interest(key->s, *et->client_fd, OP_NOOP);
                     selector_set_interest(key->s, *et->origin_fd, OP_READ);
                     ret = RESPONSE;
                 } else {
+                    log_response(ATTACHMENT(key)->orig.response.request->response);
                     selector_set_interest(key->s, *et->origin_fd, OP_NOOP);
                     selector_set_interest(key->s, *et->client_fd, OP_READ);
                     ret = REQUEST;
                 }
+            }else{
+                selector_set_interest(key->s, *et->ext_write_fd, OP_WRITE);
+                selector_set_interest(key->s, *et->origin_fd, OP_NOOP);
             }
             // et->status = et_status_done;
-        }
-//        b->read  = rp;
-//        b->write = wp;
-        if (!et->error_rd){
-            selector_set_interest(key->s, *et->ext_write_fd, OP_WRITE);
-            selector_set_interest(key->s, *et->origin_fd, OP_NOOP);
         }else{
-            buffer_read_adv(b, n);
+            if (!et->error_rd){
+                selector_set_interest(key->s, *et->ext_write_fd, OP_WRITE);
+                selector_set_interest(key->s, *et->origin_fd, OP_NOOP);
+            }else{
+                buffer_read_adv(b, n);
+            }
         }
     }else if(n == -1){
         ret = ERROR;
@@ -1375,37 +1390,51 @@ external_transformation_write(struct selector_key *key) {
     if (et->error_wr && et->did_write && !et->write_error){
         et->write_error = true;
         ptr = buffer_write_ptr(b, &count);
-        char * err_msg = "\nProxy error\r\n.\r\n";
+        char * err_msg = "\r\n.\r\n";
         sprintf((char *) ptr, "%s", err_msg);
         buffer_write_adv(b, strlen(err_msg));
     }
 
     ptr = buffer_read_ptr(b, &count);
-    n   = send(*et->client_fd, ptr, count, 0);
+    size_t bytes_sent = count;
+    if (et->send_bytes_write != 0){
+        bytes_sent = et->send_bytes_write;
+    }
+    n   = send(*et->client_fd, ptr, bytes_sent, 0);
 
     if(n > 0) {
+        if (et->send_bytes_write != 0){
+            et->send_bytes_write -= n;
+            et->finish_wr = true;
+        }
         et->did_write = true;
         buffer_read_adv(b, n);
         if (et->finish_wr)
             metricas->retrieved_messages++;
-        if (et->error_wr || et->finish_wr) {
+        if ((et->error_wr || et->finish_wr) && et->send_bytes_write == 0) {
             if (finished_et(et)) {
                 struct queue *q = ATTACHMENT(key)->session.request_queue;
-
                 // vamos a response read, todavia hay respuestas por leer
                 if (!queue_is_empty(q)) {
+                    log_response(ATTACHMENT(key)->orig.response.request->response);
                     selector_set_interest(key->s, *et->client_fd, OP_NOOP);
                     selector_set_interest(key->s, *et->origin_fd, OP_READ);
                     ret = RESPONSE;
                 } else {
+                    log_response(ATTACHMENT(key)->orig.response.request->response);
                     selector_set_interest(key->s, *et->origin_fd, OP_NOOP);
                     selector_set_interest(key->s, *et->client_fd, OP_READ);
                     ret = REQUEST;
                 }
+            }else{
+                selector_set_interest(key->s, *et->ext_read_fd, OP_READ);
+                selector_set_interest(key->s, *et->client_fd, OP_NOOP);
             }
         }else{
-            selector_set_interest(key->s, *et->ext_read_fd, OP_READ);
-            selector_set_interest(key->s, *et->client_fd, OP_NOOP);
+            if(!et->error_wr){
+                selector_set_interest(key->s, *et->ext_read_fd, OP_READ);
+                selector_set_interest(key->s, *et->client_fd, OP_NOOP);
+            }
         }
         metricas->transferred_bytes += n;
     } else if (n == -1){
@@ -1418,7 +1447,9 @@ external_transformation_write(struct selector_key *key) {
 static void
 external_transformation_close(const unsigned state, struct selector_key *key) {
     struct external_transformation *et  = &ATTACHMENT(key)->et;
+    selector_unregister_fd(key->s, *et->ext_read_fd);
     close(*et->ext_read_fd);
+    selector_unregister_fd(key->s, *et->ext_write_fd);
     close(*et->ext_write_fd);
 }
 
@@ -1437,18 +1468,21 @@ void ext_read(struct selector_key * key) {
     ptr = buffer_write_ptr(b, &count);
     n   = read(*et->ext_read_fd, ptr, count);
 
-    if (n <= 0){
+    if (n < 0){
         selector_unregister_fd(key->s, key->fd);
         et->error_wr = true;
         selector_set_interest(key->s, *et->client_fd, OP_WRITE);
-    } else if (n > 0){
+    } else if (n >= 0){
         buffer_write_adv(b, n);
-        if (parse_mail(b, et->parser_write)){
-            log_response(ATTACHMENT(key)->orig.response.request->response);
-            et->finish_wr = true;
+        if (parse_mail(b, et->parser_write, &et->send_bytes_write)){
+            //log_response(ATTACHMENT(key)->orig.response.request->response);
             selector_unregister_fd(key->s, key->fd);
         }else{
             selector_set_interest(key->s, *et->ext_read_fd, OP_NOOP);
+            if (n == 0){
+                selector_unregister_fd(key->s, key->fd);
+                et->error_wr = true;
+            }
         }
         selector_set_interest(key->s, *et->client_fd, OP_WRITE);
     }
@@ -1463,19 +1497,28 @@ void ext_write(struct selector_key * key){
     ssize_t  n;
 
     ptr = buffer_read_ptr(b, &count);
-    n   = write(*et->ext_write_fd, ptr, count);
+    size_t bytes_sent = count;
+    if (et->send_bytes_read != 0){
+        bytes_sent = et->send_bytes_read;
+    }
+    n   = write(*et->ext_write_fd, ptr, bytes_sent);
 
     if (n > 0) {
+        if (et->send_bytes_read != 0)
+            et->send_bytes_read -= n;
         buffer_read_adv(b, n);
-        if (et->finish_rd){
+        if (et->finish_rd && et->send_bytes_read == 0){
             selector_unregister_fd(key->s, key->fd);
         }else{
             selector_set_interest(key->s, *et->ext_write_fd, OP_NOOP);
             selector_set_interest(key->s, *et->origin_fd, OP_READ);
         }
-    }else{
+    }else if(n == -1){
         et->status = et_status_err;
-        buffer_reset(b);
+        if (et->send_bytes_read == 0)
+            buffer_reset(b);
+        else
+            buffer_read_adv(b, et->send_bytes_read);
         selector_unregister_fd(key->s, key->fd);
         selector_set_interest(key->s, *et->origin_fd, OP_READ);
         et->error_rd = true;
@@ -1592,6 +1635,13 @@ pop3_done(struct selector_key *key) {
             ATTACHMENT(key)->client_fd,
             ATTACHMENT(key)->origin_fd,
     };
+
+    if (ATTACHMENT(key)->origin_fd != -1) {
+        metricas->concurrent_connections--;
+        log_connection(false, (const struct sockaddr *) &ATTACHMENT(key)->client_addr,
+                       (const struct sockaddr *) &ATTACHMENT(key)->origin_addr);
+    }
+
     for(unsigned i = 0; i < N(fds); i++) {
         if(fds[i] != -1) {
             if(SELECTOR_SUCCESS != selector_unregister_fd(key->s, fds[i])) {
@@ -1601,11 +1651,6 @@ pop3_done(struct selector_key *key) {
         }
     }
 
-    if (ATTACHMENT(key)->origin_fd != -1) {
-        metricas->concurrent_connections--;
-        log_connection(false, (const struct sockaddr *) &ATTACHMENT(key)->client_addr,
-                       (const struct sockaddr *) &ATTACHMENT(key)->origin_addr);
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
