@@ -80,7 +80,7 @@ void parse_options(int argc, char **argv) {
     parameters->listen_address      = "0.0.0.0";
     parameters->replacement_msg     = "Parte reemplazada.";
     parameters->origin_port         = 110;
-    parameters->et_activated        = false;
+    parameters->et_activated        = true;
     //grep -i -v ^Subject:
     parameters->filter_command      = NULL;
     parameters->version             = "0.0";
@@ -132,7 +132,6 @@ void parse_options(int argc, char **argv) {
 
                 break;
             case 'M':
-                // TODO: create this function.
                 parse_media_types(parameters->filtered_media_types, optarg);
                 break;
                 /* Management SCTP port */
