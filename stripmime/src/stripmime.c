@@ -374,7 +374,7 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                 ctx->filtered_msg_detected = &T;
                 break;
             case MIME_MSG_BODY:
-                if((*ctx->boundary_detected != 0
+                if((ctx->boundary_detected != 0
                         && *ctx->boundary_detected) || *ctx->multipart_detected){
                     for(int i = 0; i < e->n; i++){
                         boundary_frontier_check(ctx,e->data[i]);
@@ -383,7 +383,8 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                 }
                 break;
             case MIME_MSG_BODY_NEWLINE:
-                if(*ctx->frontier_end_detected && !*ctx->frontier_detected){
+                if(ctx->frontier_detected != 0 && ctx->frontier_end_detected != 0
+                &&(*ctx->frontier_end_detected && !*ctx->frontier_detected)){
                     ctx->multipart_detected = &F;
                 }
                    if (ctx->frontier_detected != 0 && *ctx->frontier_detected) {
