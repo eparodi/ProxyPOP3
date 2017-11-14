@@ -141,6 +141,7 @@ static const struct parser_state_transition ST_FRONTIER_START[] = {
 
 static const struct parser_state_transition ST_FRONTIER[] = {
         {.when = TOKEN_REST_NAME_CHARS,     .dest = FRONTIER,         .act1 = frontier,     },
+        {.when = TOKEN_BCHARS_NOSPACE,      .dest = FRONTIER,         .act1 = frontier,     },
         {.when = '\"',                      .dest = FRONTIER_END,     .act1 = frontier_end, },
         {.when = ANY,                       .dest = ERROR,            .act1 = unexpected,   },
 };

@@ -12,6 +12,7 @@
 #include "mime_msg.h"
 #include "stripmime.h"
 #include "frontier.h"
+#include "stack.h"
 
 /*
  * imprime información de debuging sobre un evento.
@@ -57,7 +58,7 @@ struct ctx {
 
     struct parser* boundary;
 
-    struct Frontier* boundary_frontier;
+    struct stack* boundary_frontier;
 
     /* ¿hemos detectado si el field-name que estamos procesando refiere
      * a Content-Type?. Utilizando dentro msg para los field-name.
@@ -181,7 +182,7 @@ parser_feed_subtype (struct TreeNode* node, const uint8_t c){
 
 static void
 check_end_of_frontier(struct ctx*ctx, const uint8_t c){
-    const struct parser_event* e = parser_feed(ctx->boundary_frontier->frontier_end_parser, c);
+    const struct parser_event* e = parser_feed(((struct Frontier*)stack_peek(ctx->boundary_frontier))->frontier_end_parser, c);
     do{
         debug("7.Body", parser_utils_strcmpi_event, e);
         switch(e->type){
@@ -198,7 +199,7 @@ check_end_of_frontier(struct ctx*ctx, const uint8_t c){
 
 
 static void boundary_frontier_check(struct ctx*ctx, const uint8_t c){
-    const struct parser_event* e = parser_feed(ctx->boundary_frontier->frontier_parser,c);
+    const struct parser_event* e = parser_feed(((struct Frontier*)stack_peek(ctx->boundary_frontier))->frontier_parser,c);
     do{
         debug("6.Body", parser_utils_strcmpi_event,e);
         switch(e->type){
@@ -213,7 +214,7 @@ static void boundary_frontier_check(struct ctx*ctx, const uint8_t c){
 }
 
 static void store_boundary_parameter(struct ctx*ctx, const uint8_t c){
-    add_character(ctx->boundary_frontier,c);
+    add_character(stack_peek(ctx->boundary_frontier),c);
 }
 
 
@@ -253,7 +254,6 @@ content_type_subtype(struct ctx* ctx, const uint8_t c){
 
 static void
 content_type_type(struct ctx*ctx, const uint8_t c){
-    //struct TreeNode* node;
     const struct parser_event* e = parser_feed_type(ctx->mime_tree,c);
     do{
         debug("4.type", parser_utils_strcmpi_event, e);
@@ -281,7 +281,6 @@ content_type_value(struct ctx*ctx, const uint8_t c){
                     for(int i=0;i<e->n;i++){
                         content_type_type(ctx,e->data[i]);
                     }
-
                 break;
             case MIME_TYPE_SUBTYPE:
                 if(ctx->filtered_msg_detected != 0
@@ -292,17 +291,24 @@ content_type_value(struct ctx*ctx, const uint8_t c){
                 if(ctx->filtered_msg_detected != 0
                    || *ctx->filtered_msg_detected){
                     setContextType(ctx);
-                    break;
                 }
+                break;
             case MIME_PARAMETER:
                 parameter_boundary(ctx,c);
                 break;
+            case MIME_FRONTIER_START:
+                if(ctx->boundary_detected != 0
+                        && *ctx->boundary_detected){
+                    stack_push(ctx->boundary_frontier,frontier_init());
+                }
+                break;
             case MIME_FRONTIER:
                 if(ctx->boundary_detected != 0
-                        && *ctx->boundary_detected)
-                    for(int i=0;i<e->n;i++){
-                        store_boundary_parameter(ctx,e->data[i]);
+                        && *ctx->boundary_detected) {
+                    for (int i = 0; i < e->n; i++) {
+                        store_boundary_parameter(ctx, e->data[i]);
                     }
+                }
                 break;
         }
         e = e->next;
@@ -366,7 +372,7 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                 break;
             case MIME_MSG_VALUE_END:
                 // si parseabamos Content-Type ya terminamos
-                end_frontier(ctx->boundary_frontier);
+                end_frontier(stack_peek(ctx->boundary_frontier));
                 parser_reset(ctx->filtered_msg);
                 mime_parser_reset(ctx->mime_tree);
                 parser_reset(ctx->boundary);
@@ -375,7 +381,7 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                 break;
             case MIME_MSG_BODY:
                 if((ctx->boundary_detected != 0
-                        && *ctx->boundary_detected) || *ctx->multipart_detected){
+                        && *ctx->boundary_detected) || !stack_is_empty(ctx->boundary_frontier)){
                     for(int i = 0; i < e->n; i++){
                         boundary_frontier_check(ctx,e->data[i]);
                         check_end_of_frontier(ctx,e->data[i]);
@@ -385,10 +391,9 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
             case MIME_MSG_BODY_NEWLINE:
                 if(ctx->frontier_detected != 0 && ctx->frontier_end_detected != 0
                 &&(*ctx->frontier_end_detected && !*ctx->frontier_detected)){
-                    ctx->multipart_detected = &F;
+                    stack_pop(ctx->boundary_frontier);
                 }
                    if (ctx->frontier_detected != 0 && *ctx->frontier_detected) {
-                       ctx->multipart_detected = &T;
                        ctx->filtered_msg_detected = &F;
                        ctx->boundary_detected = &F;
                        ctx->frontier_detected = NULL;
@@ -400,11 +405,11 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                        parser_reset(ctx->filtered_msg);
                        parser_reset(ctx->boundary);
                        parser_reset(ctx->ctype_header);
-                       frontier_reset(ctx->boundary_frontier);
+                       frontier_reset(stack_peek(ctx->boundary_frontier));
                    }
-                    if(ctx->boundary_frontier->frontier_parser != NULL){
-                        parser_reset(ctx->boundary_frontier->frontier_parser);
-                        parser_reset(ctx->boundary_frontier->frontier_end_parser);
+                    if(stack_peek(ctx->boundary_frontier) != NULL){
+                        parser_reset(((struct Frontier*)stack_peek(ctx->boundary_frontier))->frontier_parser);
+                        parser_reset(((struct Frontier*)stack_peek(ctx->boundary_frontier))->frontier_end_parser);
                     }
                 break;
         }
@@ -454,7 +459,7 @@ stripmime(int argc, const char **argv, struct Tree* tree) {
             .filtered_msg = parser_init(init_char_class(), mime_type_parser()),
             .boundary     = parser_init(no_class, &boundary_def),
             .mime_tree    = tree,
-            .boundary_frontier = frontier_init(),
+            .boundary_frontier = stack_new(),
             .filtered_msg_detected = NULL,
             .boundary_detected     = NULL,
             .frontier_end_detected = NULL,
