@@ -4,7 +4,7 @@
 * Archivo de construcción: `CMakeLists.txt`, ubicado en el directorio raíz.
 * Informe: `docs/Informe.pdf`.
 * Presentación: `docs/Presentación.pdf`.
-* Códigos fuente: carpetas `pop3ctl`, `pop3filter` y `stripmime`.
+* Códigos fuente: carpetas `POP3ctl`, `POP3filter` y `stripMIME`.
 
 ## Compilación
 
@@ -17,7 +17,7 @@ make
 
 ### Artefactos generados
 
-Los binarios se generan en la raíz del directorio con los nombres:
+Se generan tres binarios en la raíz del directorio con los nombres:
 
 * pop3filter: server proxy.
 * pop3ctl: cliente de configuración.
@@ -31,8 +31,8 @@ manual `pop3filter.8`.
 ./pop3filter [options] <origin-server>
 ```
 ### stripmime
-Se ejecuta corriendo. Utiliza las variables de entorno definidas por el manual
- `pop3filter.8`. 
+Utiliza las variables de entorno definidas por el manual `pop3filter.8`.
+Se ejecuta corriendo: 
 ```
 ./stripmime
 ```
@@ -41,6 +41,7 @@ El cliente de configuración se ejecuta corriendo:
 ```
 ./pop3ctl [options]
 ```
-Ļas opciones disponibles son:
-* -L \<management__address\> : Dirección del server de management
-* -o \<management_port\> : Puerto del server de management
+Las opciones disponibles son:
+
+* -L \<management_address\> : dirección del server de management
+* -o \<management_port\> : puerto del server de management
