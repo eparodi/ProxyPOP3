@@ -388,7 +388,7 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
             case MIME_MSG_BODY_NEWLINE:
                 if (ctx->frontier_detected != 0 && ctx->frontier_end_detected != 0
                     && (*ctx->frontier_end_detected && !*ctx->frontier_detected)) {
-                    stack_pop(ctx->boundary_frontier);
+                    frontier_destroy(stack_pop(ctx->boundary_frontier));
                 }
                 if (ctx->frontier_detected != 0 && *ctx->frontier_detected) {
                     ctx->replace = false;
@@ -512,6 +512,7 @@ stripmime(int argc, const char **argv, struct Tree *tree, char *filter_msg) {
     parser_destroy(ctx.mime_type);
     parser_destroy(ctx.boundary);
     mime_parser_destroy(ctx.mime_tree);
+    stack_destroy(ctx.boundary_frontier);
     parser_utils_strcmpi_destroy(&media_header_def);
 
     //fclose(stdout);

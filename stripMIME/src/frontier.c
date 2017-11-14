@@ -50,3 +50,17 @@ frontier_reset(struct Frontier *frontier) {
     parser_reset(frontier->frontier_end_parser);
     parser_reset(frontier->frontier_parser);
 }
+
+void
+frontier_destroy(struct Frontier * frontier){
+
+    if (frontier->frontier_parser != NULL){
+        parser_destroy(frontier->frontier_parser);
+    }
+
+    if (frontier->frontier_end_parser != NULL){
+        parser_destroy(frontier->frontier_end_parser);
+    }
+    //TODO: free parser definition?
+    free(frontier);
+}

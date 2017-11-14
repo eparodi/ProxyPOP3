@@ -86,7 +86,7 @@ int main(int argc, char const *argv[]) {
 	free(fm);
 
 	int ret = stripmime(argc, argv, tree, filter_msg);
-	free(tree);
+	//free(tree);
 
 	return ret;
 }

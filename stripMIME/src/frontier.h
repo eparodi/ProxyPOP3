@@ -23,5 +23,7 @@ void end_frontier(struct Frontier *frontier);
 
 void frontier_reset(struct Frontier *frontier);
 
+void frontier_destroy(struct Frontier * frontier);
+
 
 #endif //TPE_PROTOS_STACK_H
