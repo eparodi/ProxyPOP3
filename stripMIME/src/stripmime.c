@@ -304,7 +304,8 @@ content_type_header(struct ctx *ctx, const uint8_t c) {
 }
 
 bool should_print(const struct parser_event *e) {
-    return e->type != MIME_MSG_BODY && e->type != MIME_MSG_VALUE_END;
+    return e->type != MIME_MSG_BODY && e->type != MIME_MSG_VALUE && e->type != MIME_MSG_VALUE_END
+           && e->type != MIME_MSG_WAIT && e->type != MIME_MSG_VALUE_FOLD;
 }
 
 /**
@@ -350,11 +351,14 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                     ctx->replace = true;
                     printf("text/plain\r\n");
                 } else {
-                    // printf("%s", ctx->buffer);
+                    printf("%s\r\n", ctx->buffer);
+                    //printed = true;
                 }
 
-                ctx->buffer[0]  = 0;
-                ctx->i          = 0;
+                ctx->i = 0;
+                for (int i = 0; i < CONTENT_TYPE_VALUE_SIZE; i++) {
+                    ctx->buffer[i]  = 0;
+                }
                 end_frontier(stack_peek(ctx->boundary_frontier));
                 parser_reset(ctx->mime_type);
                 mime_parser_reset(ctx->mime_tree);
@@ -407,7 +411,17 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                     parser_reset(((struct Frontier *) stack_peek(ctx->boundary_frontier))->frontier_end_parser);
                 }
                 break;
-            case MIME_MSG_WAIT:
+            case MIME_MSG_VALUE_FOLD:
+                for (int i = 0; i < e->n; i++) {
+                    ctx->buffer[ctx->i++] = e->data[i];
+                    if (ctx->i >= CONTENT_TYPE_VALUE_SIZE) {
+                        abort();
+                    }
+                }
+                break;
+            default:
+                //putchar(c);
+                //printed = true;
                 break;
         }
 
