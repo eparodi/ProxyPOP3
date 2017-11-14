@@ -202,7 +202,7 @@ int parse_commands(struct management *data){
 }
 
 int parse_hello(struct management *data){
-    char * message = "POP3 Proxy Management Server.\n";
+    char * message = "+OK: POP3 Proxy Management Server.\n";
     send(data->client_fd, message, strlen(message), 0);
     data->status = ST_USER;
     return 0;

@@ -1385,11 +1385,6 @@ external_transformation_write(struct selector_key *key) {
 
     if(n > 0) {
         et->did_write = true;
-        // if i can't write, i must clear the buffer.
-//        if (et->status == et_status_err){
-//            buffer_reset(b);
-//            buffer_write_adv(b, n);
-//        }
         buffer_read_adv(b, n);
         if (et->finish_wr)
             metricas->retrieved_messages++;
