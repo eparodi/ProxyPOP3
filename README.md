@@ -45,3 +45,5 @@ Las opciones disponibles son:
 
 * -L \<management_address\> : dirección del server de management
 * -o \<management_port\> : puerto del server de management
+
+El usuario y la contraseña para configuración se encuentran en `secret.txt`.
