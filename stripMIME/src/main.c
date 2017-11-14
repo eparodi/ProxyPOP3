@@ -17,7 +17,7 @@ int main(int argc, char const *argv[]) {
 		return -1;
 
 	if (filter_medias == NULL) {
-		fprintf(stderr, "Error: No filter medias specified\n");
+		fprintf(stderr, "-ERR No filter medias specified.\r\n");
 		free(tree);
 		return -1;
 	}
