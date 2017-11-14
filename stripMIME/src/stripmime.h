@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "MIMEtree.h"
 
-int stripmime(int argc, const char **argv, struct Tree* tree);
+int stripmime(int argc, const char **argv, struct Tree* tree, char * msg);
 
 
 #endif

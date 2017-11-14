@@ -228,3 +228,44 @@ removeNode(struct Tree* tree, char* type, char*subtype){
 }
 }
 
+void mime_parser_destroy(struct Tree *mime_tree){
+    struct TreeNode* node = mime_tree->first;
+    struct TreeNode* children;
+    struct TreeNode* tmp;
+    while(node != NULL){
+        children = node->children;
+        while(children != NULL){
+            tmp = children;
+            if(children->parser != NULL){
+                parser_destroy(children->parser);
+                parser_utils_strcmpi_destroy(children->def);
+            }
+            children = children->next;
+            free(tmp);
+        }
+        tmp = node;
+        parser_destroy(node->parser);
+        parser_utils_strcmpi_destroy(node->def);
+        node = node->next;
+        free(tmp);
+    }
+    free(mime_tree);
+}
+
+void
+mime_parser_reset(struct Tree* mime_tree){
+    struct TreeNode* node = mime_tree->first;
+    struct TreeNode* children;
+    while(node != NULL){
+        children = node->children;
+        while(children != NULL){
+			if (!children->wildcard) {
+				parser_reset(children->parser);
+			}
+            children = children->next;
+        }
+        parser_reset(node->parser);
+        node = node->next;
+    }
+}
+

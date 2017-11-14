@@ -30,5 +30,8 @@ void addNode(struct Tree* tree, char* type,char* subtype);
 
 void removeNode(struct Tree* tree, char* type, char* subtype);
 
+void mime_parser_destroy(struct Tree *mime_tree);
+
+void mime_parser_reset(struct Tree* mime_tree);
 
 #endif

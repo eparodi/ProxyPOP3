@@ -17,7 +17,7 @@ int main(int argc, char const *argv[]) {
 	if (tree == NULL)
 		return -1;
 
-	FILE * f = freopen("iii_images_fwd.mbox","r", stdin);
+	FILE * f = freopen("/home/tobias/CLionProjects/ProxyPOP3/mails/64kb:2,S","r", stdin);
 	if (f == NULL) {
         free(tree);
         return -1;
@@ -30,6 +30,12 @@ int main(int argc, char const *argv[]) {
 		free(tree);
 		fclose(f);
 		return -1;
+	}
+
+	char * filter_msg = getenv(FILTER_MSG);
+
+	if (filter_msg == NULL) {
+		filter_msg = "Parte reemplazada.";
 	}
 
 	char * fm = malloc(strlen(filter_medias) + 1);
@@ -90,7 +96,7 @@ int main(int argc, char const *argv[]) {
 
 	free(fm);
 
-	int ret = stripmime(argc, argv, tree);
+	int ret = stripmime(argc, argv, tree, filter_msg);
 	free(tree);
 
 	return ret;
