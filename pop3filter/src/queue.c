@@ -113,7 +113,14 @@ void * queue_get_next(struct queue *q) {
 }
 
 void queue_destroy(struct queue *q) {
+    struct queue_node *first = q->first;
+    struct queue_node *aux;
 
-    //TODO free nodes
+    while (first != NULL) {
+        aux = first->next;
+        free(first);
+        first = aux;
+    }
+
     free(q);
 }
