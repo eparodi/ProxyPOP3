@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdbool.h>
 #include <string.h>
 
 #include "stripmime.h"
@@ -17,18 +16,9 @@ int main(int argc, char const *argv[]) {
 	if (tree == NULL)
 		return -1;
 
-	FILE * f = freopen("/home/tobias/CLionProjects/ProxyPOP3/mails/64kb:2,S","r", stdin);
-	if (f == NULL) {
-        free(tree);
-        return -1;
-    }
-
-	// char * filter_msg = getenv(FILTER_MSG);
-
 	if (filter_medias == NULL) {
 		fprintf(stderr, "Error: No filter medias specified\n");
 		free(tree);
-		fclose(f);
 		return -1;
 	}
 
@@ -50,7 +40,6 @@ int main(int argc, char const *argv[]) {
 
 	char *token;
 	char *mime;
-	//char *type, *subtype;
 
 	/* get the first token */
 	token = strtok_r(str, comma, &ctx1);

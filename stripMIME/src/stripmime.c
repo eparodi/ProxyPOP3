@@ -21,27 +21,27 @@
  * @param namefnc  obtiene el nombre de un tipo de evento
  * @param e        evento que se quiere imprimir
  */
-static void
-debug(const char *p,
-      const char *(*namefnc)(unsigned),
-      const struct parser_event *e) {
-    // DEBUG: imprime
-    if (e->n == 0) {
-        fprintf(stderr, "%-8s: %-14s\n", p, namefnc(e->type));
-    } else {
-        for (int j = 0; j < e->n; j++) {
-            const char *name = (j == 0) ? namefnc(e->type)
-                                        : "";
-            if (e->data[j] <= ' ') {
-                fprintf(stderr, "%-8s: %-14s 0x%02X\n", p, name, e->data[j]);
-            } else {
-                fprintf(stderr, "%-8s: %-14s %c\n", p, name, e->data[j]);
-            }
-        }
-    }
-}
+//static void
+//debug(const char *p,
+//      const char *(*namefnc)(unsigned),
+//      const struct parser_event *e) {
+//    // DEBUG: imprime
+//    if (e->n == 0) {
+//        fprintf(stderr, "%-8s: %-14s\n", p, namefnc(e->type));
+//    } else {
+//        for (int j = 0; j < e->n; j++) {
+//            const char *name = (j == 0) ? namefnc(e->type)
+//                                        : "";
+//            if (e->data[j] <= ' ') {
+//                fprintf(stderr, "%-8s: %-14s 0x%02X\n", p, name, e->data[j]);
+//            } else {
+//                fprintf(stderr, "%-8s: %-14s %c\n", p, name, e->data[j]);
+//            }
+//        }
+//    }
+//}
 
-#define CONTENT_TYPE_VALUE_SIZE 256
+#define CONTENT_TYPE_VALUE_SIZE 2048
 
 /* mantiene el estado durante el parseo */
 struct ctx {
@@ -148,7 +148,7 @@ check_end_of_frontier(struct ctx *ctx, const uint8_t c) {
     const struct parser_event *e = parser_feed(
             ((struct Frontier *) stack_peek(ctx->boundary_frontier))->frontier_end_parser, c);
     do {
-        debug("7.Body", parser_utils_strcmpi_event, e);
+        //debug("7.Body", parser_utils_strcmpi_event, e);
         switch (e->type) {
             case STRING_CMP_EQ:
                 ctx->frontier_end_detected = &T;
@@ -166,7 +166,7 @@ static void boundary_frontier_check(struct ctx *ctx, const uint8_t c) {
     const struct parser_event *e = parser_feed(
             ((struct Frontier *) stack_peek(ctx->boundary_frontier))->frontier_parser, c);
     do {
-        debug("6.Body", parser_utils_strcmpi_event, e);
+        //debug("6.Body", parser_utils_strcmpi_event, e);
         switch (e->type) {
             case STRING_CMP_EQ:
                 ctx->frontier_detected = &T;
@@ -186,7 +186,7 @@ static void store_boundary_parameter(struct ctx *ctx, const uint8_t c) {
 static void parameter_boundary(struct ctx *ctx, const uint8_t c) {
     const struct parser_event *e = parser_feed(ctx->boundary, c);
     do {
-        debug("5.Boundary", parser_utils_strcmpi_event, e);
+        //debug("5.Boundary", parser_utils_strcmpi_event, e);
         switch (e->type) {
             case STRING_CMP_EQ:
                 ctx->boundary_detected = &T;
@@ -203,7 +203,7 @@ static void
 content_type_subtype(struct ctx *ctx, const uint8_t c) {
     const struct parser_event *e = parser_feed_subtype(ctx->subtype, c);
     do {
-        debug("4.subtype", parser_utils_strcmpi_event, e);
+        //debug("4.subtype", parser_utils_strcmpi_event, e);
         switch (e->type) {
             case STRING_CMP_EQ:
                 ctx->filtered_msg_detected = &T;
@@ -221,7 +221,7 @@ static void
 content_type_type(struct ctx *ctx, const uint8_t c) {
     const struct parser_event *e = parser_feed_type(ctx->mime_tree, c);
     do {
-        debug("4.type", parser_utils_strcmpi_event, e);
+        //debug("4.type", parser_utils_strcmpi_event, e);
         switch (e->type) {
             case STRING_CMP_EQ:
                 ctx->filtered_msg_detected = &T;
@@ -238,7 +238,7 @@ static void
 content_type_value(struct ctx *ctx, const uint8_t c) {
     const struct parser_event *e = parser_feed(ctx->mime_type, c);
     do {
-        debug("3.typeval", mime_type_event, e);
+        //debug("3.typeval", mime_type_event, e);
         switch (e->type) {
             case MIME_TYPE_TYPE:
                 if (ctx->filtered_msg_detected != 0
@@ -290,7 +290,7 @@ static void
 content_type_header(struct ctx *ctx, const uint8_t c) {
     const struct parser_event *e = parser_feed(ctx->ctype_header, c);
     do {
-        debug("2.typehr", parser_utils_strcmpi_event, e);
+        //debug("2.typehr", parser_utils_strcmpi_event, e);
         switch (e->type) {
             case STRING_CMP_EQ:
                 ctx->msg_content_type_field_detected = &T;
@@ -319,7 +319,7 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
 
     bool printed = false;
     do {
-        debug("1.   msg", mime_msg_event, e);
+        //debug("1.   msg", mime_msg_event, e);
         switch (e->type) {
             case MIME_MSG_NAME:
                 if (ctx->msg_content_type_field_detected == 0
@@ -420,14 +420,16 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
                 }
                 break;
             default:
-                //putchar(c);
-                //printed = true;
                 break;
         }
 
         if (should_print(e) && !printed) {
-            putchar(c);
-            printed = true;
+            if ((c == '\r' || c== '\n') && (e->type == MIME_MSG_BODY_NEWLINE || e->type == MIME_MSG_BODY_CR) && ctx->replaced) {
+                // nada por hacer
+            } else {
+                putchar(c);
+                printed = true;
+            }
         }
 
         e = e->next;
@@ -440,7 +442,7 @@ static void
 pop3_multi(struct ctx *ctx, const uint8_t c) {
     const struct parser_event *e = parser_feed(ctx->multi, c);
     do {
-        debug("0. multi", pop3_multi_event, e);
+        //debug("0. multi", pop3_multi_event, e);
         switch (e->type) {
             case POP3_MULTI_BYTE:
                 for (int i = 0; i < e->n; i++) {
