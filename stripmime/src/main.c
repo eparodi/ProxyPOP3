@@ -17,7 +17,7 @@ int main(int argc, char const *argv[]) {
 	if (tree == NULL)
 		return -1;
 
-	FILE * f = freopen("mail_no_boundary.txt","r", stdin);
+	FILE * f = freopen("iii_images_fwd.mbox","r", stdin);
 	if (f == NULL) {
         free(tree);
         return -1;
