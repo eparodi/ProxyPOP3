@@ -96,7 +96,7 @@ void parse_options(int argc, char **argv) {
     int messages = 0;
 
     if (get_user_pass() < 0){
-        fprintf (stderr, "There is a problem with the auth configuration");
+        fprintf (stderr, "There is a problem with the auth configuration\n");
         exit(0);
     }
 
