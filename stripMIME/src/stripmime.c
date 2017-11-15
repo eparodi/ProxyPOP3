@@ -117,12 +117,18 @@ parser_feed_type(struct Tree *mime_tree, const uint8_t c) {
     return global_event;
 }
 
+bool global_e = false;
+
 const struct parser_event *
 parser_feed_subtype(struct TreeNode *node, const uint8_t c) {
     struct parser_event *global_event;
 
     if (node->wildcard) {
+        global_e = true;
         global_event = malloc(sizeof(*global_event));
+        if (global_event == NULL) {
+            return NULL;
+        }
         memset(global_event, 0, sizeof(*global_event));
         global_event->type = STRING_CMP_EQ;
         global_event->next = NULL;
@@ -130,6 +136,7 @@ parser_feed_subtype(struct TreeNode *node, const uint8_t c) {
         global_event->data[0] = c;
         return global_event;
     }
+    global_e = false;
     node->event = parser_feed(node->parser, c);
     global_event = (struct parser_event *) node->event;
 
@@ -202,6 +209,10 @@ static void parameter_boundary(struct ctx *ctx, const uint8_t c) {
 static void
 content_type_subtype(struct ctx *ctx, const uint8_t c) {
     const struct parser_event *e = parser_feed_subtype(ctx->subtype, c);
+    if (e == NULL) {
+        //TODO destro ctx
+        return;
+    }
     do {
         //debug("4.subtype", parser_utils_strcmpi_event, e);
         switch (e->type) {
@@ -212,7 +223,13 @@ content_type_subtype(struct ctx *ctx, const uint8_t c) {
                 ctx->filtered_msg_detected = &F;
                 break;
         }
-        e = e->next;
+
+        const struct parser_event *next = e->next;
+        if (global_e) {
+            free((void *) e);
+            global_e = false;
+        }
+        e = next;
     } while (e != NULL);
 }
 
@@ -264,7 +281,11 @@ content_type_value(struct ctx *ctx, const uint8_t c) {
             case MIME_FRONTIER_START:
                 if (ctx->boundary_detected != 0
                     && *ctx->boundary_detected) {
-                    stack_push(ctx->boundary_frontier, frontier_init());
+                    struct Frontier *f = frontier_init();
+                    if (f == NULL) {
+                        abort();
+                    }
+                    stack_push(ctx->boundary_frontier, f);
                 }
                 break;
             case MIME_FRONTIER:
@@ -388,7 +409,10 @@ mime_msg(struct ctx *ctx, const uint8_t c) {
             case MIME_MSG_BODY_NEWLINE:
                 if (ctx->frontier_detected != 0 && ctx->frontier_end_detected != 0
                     && (*ctx->frontier_end_detected && !*ctx->frontier_detected)) {
-                    frontier_destroy(stack_pop(ctx->boundary_frontier));
+                    struct Frontier *f = stack_pop(ctx->boundary_frontier);
+                    if (f != NULL) {
+                        frontier_destroy(f);
+                    }
                 }
                 if (ctx->frontier_detected != 0 && *ctx->frontier_detected) {
                     ctx->replace = false;
@@ -462,10 +486,8 @@ pop3_multi(struct ctx *ctx, const uint8_t c) {
     } while (e != NULL);
 }
 
-char *FM;
-
 int
-stripmime(int argc, const char **argv, struct Tree *tree, char *filter_msg) {
+stripmime(struct Tree *tree, char *filter_msg) {
 
     const unsigned int *no_class = parser_no_classes();
     struct parser_definition media_header_def =
@@ -475,29 +497,32 @@ stripmime(int argc, const char **argv, struct Tree *tree, char *filter_msg) {
             parser_utils_strcmpi("boundary");
 
     struct ctx ctx = {
-            .multi        = parser_init(no_class, pop3_multi_parser()),
-            .msg          = parser_init(init_char_class(), mime_message_parser()),
-            .ctype_header = parser_init(no_class, &media_header_def),
-            .mime_type = parser_init(init_char_class(), mime_type_parser()),
-            .boundary     = parser_init(no_class, &boundary_def),
-            .mime_tree    = tree,
-            .boundary_frontier = stack_new(),
-            .filtered_msg_detected = NULL,
-            .boundary_detected     = NULL,
-            .frontier_end_detected = NULL,
-            .frontier_detected     = NULL,
-            .filter_msg            = filter_msg,
-            .replace               = false,
-            .replaced              = false,
-            .buffer                = {0},
-            .i                     = 0,
+            .multi                  = parser_init(no_class, pop3_multi_parser()),
+            .msg                    = parser_init(init_char_class(), mime_message_parser()),
+            .ctype_header           = parser_init(no_class, &media_header_def),
+            .mime_type              = parser_init(init_char_class(), mime_type_parser()),
+            .boundary               = parser_init(no_class, &boundary_def),
+            .mime_tree              = tree,
+            .boundary_frontier      = stack_new(),
+            .filtered_msg_detected  = NULL,
+            .boundary_detected      = NULL,
+            .frontier_end_detected  = NULL,
+            .frontier_detected      = NULL,
+            .filter_msg             = filter_msg,
+            .replace                = false,
+            .replaced               = false,
+            .buffer                 = {0},
+            .i                      = 0,
     };
 
     uint8_t data[4096];
     ssize_t n;
     int fd = STDIN_FILENO;
 
-    //freopen("redirected", "w", stdout);
+//    FILE * f = freopen("redirected", "w", stdout);
+//    if (f == NULL) {
+//        return -1;
+//    }
 
     do {
         n = read(fd, data, sizeof(data));
@@ -509,13 +534,19 @@ stripmime(int argc, const char **argv, struct Tree *tree, char *filter_msg) {
     parser_destroy(ctx.multi);
     parser_destroy(ctx.msg);
     parser_destroy(ctx.ctype_header);
+    parser_utils_strcmpi_destroy(&media_header_def);
     parser_destroy(ctx.mime_type);
     parser_destroy(ctx.boundary);
+    parser_utils_strcmpi_destroy(&boundary_def);
     mime_parser_destroy(ctx.mime_tree);
-    stack_destroy(ctx.boundary_frontier);
-    parser_utils_strcmpi_destroy(&media_header_def);
 
-    //fclose(stdout);
+    while(!stack_is_empty(ctx.boundary_frontier)) {
+        struct Frontier *f = stack_pop(ctx.boundary_frontier);
+        frontier_destroy(f);
+    }
+    stack_destroy(ctx.boundary_frontier);
+
+//    fclose(stdout);
 
     return 0;
 }

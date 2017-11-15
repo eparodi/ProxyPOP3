@@ -30,9 +30,6 @@ newNode(char* name){
 		struct parser_definition aux = parser_utils_strcmpi(name);
 		memcpy(def, &aux, sizeof(aux));
 
-		//parser_utils_strcmpi_destroy(&aux);
-
-
         //const unsigned int* no_class = parser_no_classes();
 		node->parser = parser_init(parser_no_classes(), def);
 		node->def	= def;
@@ -61,16 +58,32 @@ newNodeWildcard(){
 	return node;
 }
 
+static void
+destroy_node(struct TreeNode *node) {
+	if (node->name != NULL && node->wildcard) {
+		free((void *) node->name);
+	}
+	if (node->def != NULL) {
+		parser_utils_strcmpi_destroy(node->def);
+		free(node->def);
+	}
+	if (node->parser != NULL) {
+		parser_destroy(node->parser);
+	}
+}
+
 struct TreeNode*
 removeChildren(struct TreeNode* node){
 	struct TreeNode* aux = node->children;
-	//struct TreeNode* tmp;
-	while(aux->next!=NULL){
-		//tmp = aux;
+	struct TreeNode* tmp;
+
+	while (aux != NULL) {
+		tmp = aux;
 		aux = aux->next;
-		free(aux);
+		destroy_node(tmp);
+		free(tmp);
 	}
-	free(node->children);
+
 	node->children = NULL;
 	return node;
 }
@@ -134,7 +147,7 @@ void addWildcard(struct TreeNode* node, char* type, bool found){
 	return;
 }
 
-void
+enum add_status
 addNode(struct Tree* tree, char* type, char* subtype) {
 	if(tree!=NULL){
 		if(tree->first == NULL){
@@ -142,35 +155,41 @@ addNode(struct Tree* tree, char* type, char* subtype) {
 			if(strcmp(subtype,WILDCARD)==0){
 				tree->first->children = newNodeWildcard();
 				//fprintf(stderr,"Created new Node:%s/%s\n",type,subtype);
+				return sub;
 			}else{
 				tree->first->children = newNode(subtype);
 				//fprintf(stderr,"Created new Node:%s/%s\n",type,subtype);
 			}
-			return;
+			return ok;
 		}
 		bool found = false;
 		struct TreeNode* node = findTypeMatch(tree,type,&found);
-	if(strcmp(subtype,WILDCARD) == 0){
-		addWildcard(node,type,found);
-	}else{
-		if(found){
-			found = false;
-			node = findSubTypeMatch(node->children, subtype, &found);
+		if(strcmp(subtype,WILDCARD) == 0){
+			addWildcard(node,type,found);
+			return found? both : sub;
+		} else {
 			if(found){
-				//fprintf(stderr,"Filter already added\n");
-				return;
+				found = false;
+				node = findSubTypeMatch(node->children, subtype, &found);
+				if(found){
+					//fprintf(stderr,"Filter already added\n");
+					return err;
+				}else{
+					//fprintf(stderr,"Added new subtype to %s/%s\n",type,subtype);
+					node->next = newNode(subtype);
+					return typ;
+				}
 			}else{
-				//fprintf(stderr,"Added new subtype to %s/%s\n",type,subtype);
-				node->next = newNode(subtype);
+				node->next = newNode(type);
+				node->next->children = newNode(subtype);
+				//fprintf(stderr,"Created new Node:%s/%s\n",type,subtype);
+				return ok;
 			}
-		}else{
-			node->next = newNode(type);
-			node->next->children = newNode(subtype);
-			//fprintf(stderr,"Created new Node:%s/%s\n",type,subtype);
 		}
+
 	}
-	return;	
-	}
+
+	return err;
 }
 
 void
@@ -239,13 +258,19 @@ void mime_parser_destroy(struct Tree *mime_tree){
             if(children->parser != NULL){
                 parser_destroy(children->parser);
                 parser_utils_strcmpi_destroy(children->def);
+				free(children->def);
             }
+			if (!children->wildcard)
+				free((void*)children->name);
             children = children->next;
             free(tmp);
         }
         tmp = node;
         parser_destroy(node->parser);
         parser_utils_strcmpi_destroy(node->def);
+		free(node->def);
+		if (!node->wildcard)
+			free((void*)node->name);
         node = node->next;
         free(tmp);
     }

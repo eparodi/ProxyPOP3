@@ -23,18 +23,37 @@ void
 end_frontier(struct Frontier *frontier) {
     if (frontier != NULL) {
         frontier->frontier[frontier->frontier_size] = 0;
+
+        if (frontier->frontier_parser != NULL) {
+            parser_destroy(frontier->frontier_parser);
+            parser_utils_strcmpi_destroy(frontier->frontier_parser_def);
+            free(frontier->frontier_parser_def);
+        }
+
         struct parser_definition *def = malloc(sizeof(*def));
         struct parser_definition aux = parser_utils_strcmpi(frontier->frontier);
         memcpy(def, &aux, sizeof(aux));
+        def->states = aux.states;
+        def->states_n = aux.states_n;
         frontier->frontier_parser = parser_init(init_char_class(), def);
         frontier->frontier_parser_def = def;
+
         frontier->frontier[frontier->frontier_size] = '-';
         frontier->frontier[frontier->frontier_size + 1] = '-';
         frontier->frontier[frontier->frontier_size + 2] = 0;
+
+        if (frontier->frontier_end_parser != NULL) {
+            parser_destroy(frontier->frontier_end_parser);
+            parser_utils_strcmpi_destroy(frontier->frontier_end_parser_def);
+            free(frontier->frontier_end_parser_def);
+        }
         struct parser_definition *def_end = malloc(sizeof(*def_end));
         struct parser_definition aux_end = parser_utils_strcmpi(frontier->frontier);
         memcpy(def_end, &aux_end, sizeof(aux_end));
+        def_end->states = aux_end.states;
+        def_end->states_n = aux_end.states_n;
         frontier->frontier_end_parser = parser_init(init_char_class(), def_end);
+        frontier->frontier_end_parser_def = def_end;
     }
 }
 
@@ -61,6 +80,16 @@ frontier_destroy(struct Frontier * frontier){
     if (frontier->frontier_end_parser != NULL){
         parser_destroy(frontier->frontier_end_parser);
     }
-    //TODO: free parser definition?
+
+    if (frontier->frontier_parser != NULL) {
+        parser_utils_strcmpi_destroy(frontier->frontier_parser_def);
+        free(frontier->frontier_parser_def);
+    }
+
+    if (frontier->frontier_end_parser_def != NULL) {
+        parser_utils_strcmpi_destroy(frontier->frontier_end_parser_def);
+        free(frontier->frontier_end_parser_def);
+    }
+
     free(frontier);
 }

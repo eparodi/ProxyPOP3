@@ -22,11 +22,14 @@ struct MIMEtype{
 	char* subtype;
 };
 
-
+//luego de agregar devuelve que se deberia liberar (ok=nada, err=both)
+enum add_status {
+	ok, err, typ, sub, both,
+};
 
 struct Tree* tree_init(void);
 
-void addNode(struct Tree* tree, char* type,char* subtype);
+enum add_status addNode(struct Tree* tree, char* type,char* subtype);
 
 void removeNode(struct Tree* tree, char* type, char* subtype);
 

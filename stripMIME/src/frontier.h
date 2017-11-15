@@ -12,6 +12,7 @@ struct Frontier {
     struct parser *frontier_parser;
     struct parser *frontier_end_parser;
     struct parser_definition *frontier_parser_def;
+    struct parser_definition *frontier_end_parser_def;
 };
 
 
